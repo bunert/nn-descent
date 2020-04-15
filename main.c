@@ -33,9 +33,9 @@ void heap_test() {
 }
 
 void heap_list_test() {
-    heap_list_t* src = heap_list_init(1);
-    heap_list_t* dst = heap_list_init(1);
-    heap_list_t* dst2 = heap_list_init(1);
+    heap_list_t* src = heap_list_init(10);
+    heap_list_t* dst = heap_list_init(10);
+    heap_list_t* dst2 = heap_list_init(10);
 
     heap_t* h = heap_init(1, 1);
     heap_insert(h, &(heap_el_t){0.0, 2});
@@ -45,7 +45,7 @@ void heap_list_test() {
     heap_list_insert(src, h);
 
     h = heap_init(3, 5);
-    heap_insert(h, &(heap_el_t){0.0, 2});
+    heap_insert(h, &(heap_el_t){0.0, 2, true});
     heap_insert(h, &(heap_el_t){0.0, 3});
     heap_insert(h, &(heap_el_t){0.0, 6});
 
@@ -54,10 +54,11 @@ void heap_list_test() {
     heap_list_reverse(dst, dst2);
 
     // reversing twice should be id
-    assert(heap_list_eq(src, dst2));
     heap_list_print(src);
     heap_list_print(dst);
     heap_list_print(dst2);
+    assert(heap_list_eq(src, dst2));
+
 }
 
 void read_data(double* points) {
@@ -89,10 +90,10 @@ void sample(int arr[], int size, int max) {
 }
 
 double distance(double* points, int n1, int n2) {
-    return (points[n1]-points[n2])*(points[n1]-points[n2])
-        + (points[n1+1]-points[n2+1])*(points[n1+1]-points[n2+1])
-        + (points[n1+2]-points[n2+2])*(points[n1+2]-points[n2+2])
-        + (points[n1+3]-points[n2+3])*(points[n1+3]-points[n2+3]);
+    return (points[4*n1]-points[4*n2])*(points[4*n1]-points[4*n2])
+        + (points[4*n1+1]-points[4*n2+1])*(points[4*n1+1]-points[4*n2+1])
+        + (points[4*n1+2]-points[4*n2+2])*(points[4*n1+2]-points[4*n2+2])
+        + (points[4*n1+3]-points[4*n2+3])*(points[4*n1+3]-points[4*n2+3]);
 }
 
 int update_nn(heap_t* h, int node_id, double key) {
@@ -101,11 +102,13 @@ int update_nn(heap_t* h, int node_id, double key) {
     if (heap_empty(h))
         return 0;
 
+    assert(h->id != node_id);
     if (heap_peek(h)->key > key) {
-
+        
         heap_el_t* el = heap_extract(h);
         el->key = key;
         el->node_id = node_id;
+        el->newf = true;
         heap_insert(h, el);
         return 1;
     }
@@ -113,6 +116,8 @@ int update_nn(heap_t* h, int node_id, double key) {
 }
 
 int main() {
+    // TODO: don't do the modifications on the B we're working on
+    // TODO: check whether split into new/old is necessary
     heap_test();
     heap_list_test();
     
@@ -120,7 +125,7 @@ int main() {
     read_data(points); 
 
     int K = 10;
-    int T = 30;
+    int T = 10;
     int N = 4*1000;
     int* indices = malloc(K*sizeof(int));
 
@@ -135,6 +140,7 @@ int main() {
             heap_el_t* hel = malloc(sizeof(heap_el_t));
             hel->node_id = indices[j];
             hel->key = distance(points, i, indices[j]);
+            hel->newf = true;
             
             heap_insert(adj_heap, hel);
         }
@@ -149,28 +155,41 @@ int main() {
         for (int i=0; i<N; i++) {
             heap_t* B_i = heap_list_get(B, i);
             heap_t* R_i = heap_list_get(R, i);
-            for (int j=0; j< (B_i->max_indx + R_i->max_indx); j++) {
+
+            int union_length = B_i->max_indx;
+            // we might not have any edges pointing to node i
+            // but we will always have K pointing outwards from node i
+            if (R_i)
+                union_length += R_i->max_indx;
+
+            for (int j=0; j< union_length; j++) {
                 heap_el_t* el_j = (j < B_i->max_indx) ?
                     B_i->els[j] : R_i->els[j-B_i->max_indx];
-                for (int k=j+1; k< (B_i->max_indx + R_i->max_indx); k++) {
+
+                for (int k=j+1; k< union_length; k++) {
                     heap_el_t* el_k = (k < B_i->max_indx) ?
                         B_i->els[k] : R_i->els[k-B_i->max_indx];
-                    
-                    double l = distance(points, el_j->node_id, el_k->node_id);
-                    c += update_nn(heap_list_get(B,el_j->node_id), el_k->node_id, l);
-                    c += update_nn(heap_list_get(B,el_k->node_id), el_j->node_id, l);
 
+                    if ((el_k->newf||el_j->newf)
+                            && el_k->node_id != el_j->node_id) {
+                        double l = distance(points, el_j->node_id, el_k->node_id);
+                        c += update_nn(heap_list_get(B,el_j->node_id), el_k->node_id, l);
+                        c += update_nn(heap_list_get(B,el_k->node_id), el_j->node_id, l);
+                    }
                 }
             }
 
         }
         printf("C: %d\n", c);
-    }
-    double correct = 0;
 
-    for (int i=0; i<N; i++)
-        if (heap_peek(heap_list_get(B, i))->node_id/1000 == i/1000)
-            correct += 1;
-    printf("Closest neighbor from same distribution: %f\n", correct/N);
+    }
+        double correct = 0;
+
+        for (int i=0; i<N; i++) {
+            assert(heap_peek(heap_list_get(B,i))->node_id!=i);
+            if (heap_peek(heap_list_get(B, i))->node_id/1000 == i/1000)
+                correct += 1;
+        }
+        printf("Closest neighbor from same distribution: %f\n", correct/N);
 
 }

@@ -7,6 +7,7 @@
 typedef struct heap_el {
     double key;
     int node_id;
+    bool newf;
 } heap_el_t;
 
 typedef struct heap {
@@ -22,3 +23,4 @@ heap_el_t* heap_extract(heap_t* heap);
 heap_el_t* heap_peek(heap_t* heap);
 bool heap_empty(heap_t* heap);
 bool heap_contains(heap_t* heap, int id);
+heap_el_t* heap_get(heap_t* heap, int id);

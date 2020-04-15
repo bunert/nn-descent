@@ -6,56 +6,61 @@ heap_list_t* heap_list_init(int size) {
     if (h == NULL)
         return NULL;
 
-    h->heaps = malloc(size * sizeof(heap_t*));
+    h->heaps = calloc(size, sizeof(heap_t*));
     if (h->heaps == NULL)
         return NULL;
 
     h->size = size;
-    h->max_indx = 0;
+    h->max_indx = size;
     return h;
 }
 
 heap_t* heap_list_get(heap_list_t* hl, int id) {
 // retreive heap with id (B[id])
-    for (int i=0; i<hl->max_indx; i++)
-        if (hl->heaps[i]->id == id)
-            return hl->heaps[i];
+    if (id >= hl->size)
+        return NULL;
 
-    return NULL;
+    heap_t* h = hl->heaps[id];
+    if (h)
+        assert(h->id == id);
+    return h;
 }
 
 bool heap_list_insert(heap_list_t* hl, heap_t* heap) {
-    if (hl->max_indx == hl->size) {
-        // try to double size of heap pointer array
-        heap_t** heaps = realloc(hl->heaps, hl->size*2*sizeof(heap_t*));
+    if (heap->id >= hl->size) {
+        // need to make sure that this stuff is zeroed out when expanding, otherwise we cant traverse through list of heaps as if it was an array...
+        assert(false);
+        // expand to fit heap->id
+        heap_t** heaps = realloc(hl->heaps, heap->id*sizeof(heap_t*));
         if (heaps == NULL)
             return false;
 
         if (VERBOSE)
             printf("Doubled heap list size...\n");
         
-        hl->size *= 2;
+        hl->size = heap->id;
         hl->heaps = heaps;
-
     }
     
     // insert heap into heaplist
-    hl->heaps[hl->max_indx] = heap;
-    hl->max_indx++;
+    hl->heaps[heap->id] = heap;
+    hl->max_indx = (hl->max_indx > heap->id) ? hl->max_indx : heap->id;
     return true;
 }
 
 bool heap_list_reverse(heap_list_t* src, heap_list_t* dst) {
     // reverse heap list
-    if (dst->max_indx != 0)
-        return false;
     
     for (int i=0; i<src->max_indx; i++) {
+        if (src->heaps[i] == NULL)
+            continue;
+
         heap_t* src_h = src->heaps[i];
         int heap_id = src_h->id;
         for (int j=0; j<src_h->max_indx; j++) {
             int node_id = src_h->els[j]->node_id;
             double key = src_h->els[j]->key;
+            bool newf = src_h->els[j]->newf;
             heap_t* dst_h = heap_list_get(dst, node_id);
             
             // create new heap (adj list) for node node_id
@@ -68,6 +73,7 @@ bool heap_list_reverse(heap_list_t* src, heap_list_t* dst) {
             heap_el_t* hel = malloc(sizeof(heap_el_t));
             hel->node_id = heap_id;
             hel->key = key;
+            hel->newf = newf;
 
             if (!heap_insert(dst_h, hel))
                 return false;
@@ -79,11 +85,14 @@ void heap_list_print(heap_list_t* hl) {
     printf("Printing heap_list\n");
     for (int i=0; i<hl->max_indx; i++) {
         heap_t* src_h = hl->heaps[i];
+        if (!src_h)
+            continue;
         int heap_id = src_h->id;
         printf("%d: ", heap_id);
         for (int j=0; j<src_h->max_indx; j++) {
             int node_id = src_h->els[j]->node_id;
-            printf("%d, ", node_id);    
+            bool newf = src_h->els[j]->newf;
+            printf("%d (%d), ", node_id, newf);    
         } 
         printf("\n");
     }
@@ -93,10 +102,16 @@ bool heap_list_contained_in(heap_list_t* hl, heap_list_t* hl2) {
     // check whether hl is contained in hl2 
     for (int i=0; i<hl->max_indx; i++) {
         heap_t* src_h = hl->heaps[i];
+        if (!src_h)
+            continue;
         int heap_id = src_h->id;
         for (int j=0; j<src_h->max_indx; j++) {
             int node_id = src_h->els[j]->node_id;
-            if (!heap_contains(heap_list_get(hl2, heap_id), node_id))
+            bool newf = src_h->els[j]->newf;
+            if (heap_contains(heap_list_get(hl2, heap_id), node_id))
+                if (heap_get(heap_list_get(hl2, heap_id), node_id)->newf != newf)
+                    return false;
+            else
                 return false;
         } 
         printf("\n");

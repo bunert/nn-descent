@@ -1,3 +1,4 @@
+#include <math.h>
 #include "heap.h"
 
 typedef struct heap_list {

@@ -126,11 +126,14 @@ heap_t* heap_init(int size, int id) {
     return h;
 }
 
-bool heap_contains(heap_t* heap, int id) {
+heap_el_t* heap_get(heap_t* heap, int id) {
     if (heap == NULL)
-        return false;
+        return NULL;
     for (int i=0; i<heap->max_indx; i++)
         if (heap->els[i]->node_id == id)
-            return true;
-    return false;
+            return heap->els[i];
+    return NULL;
+}
+bool heap_contains(heap_t* heap, int id) {
+    return !heap_get(heap,id);
 }
