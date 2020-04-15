@@ -29,24 +29,43 @@ void check_heap(heap_t* heap) {
     }
 }
 
-void heap_insert(heap_t* heap, heap_el_t* el) {
+bool heap_insert(heap_t* heap, heap_el_t* el) {
     heap_t* h = heap;
+    if (h->max_indx == h->size) {
+        heap_el_t** els = realloc(h->els, h->size*2*sizeof(heap_el_t));
+        if (els == NULL)
+            return false;
+
+        if (VERBOSE)
+            printf("Doubled heap size...\n");
+        
+        h->size *= 2;
+        h->els = els;
+    }
      
     int indx = h->max_indx;
     h->els[indx] = el;
-    while (h->els[indx]->key > h->els[heap_parent(indx)]->key) {
-        // swap parent and child
-        // if child has larger key than parent
-        //
-        indx = heap_swap(h, indx, heap_parent(indx));
-    }
+
+    // swap parent and child
+    // if child has larger key than parent
+    //
+    while (h->els[indx]->key > h->els[heap_parent(indx)]->key)
+        indx = heap_swap(h, indx, heap_parent(indx)); 
     
     h->max_indx++;
     check_heap(heap);
+    return true;
 }
 
 bool heap_empty(heap_t* heap) {
     return (heap->max_indx == 0);
+}
+
+heap_el_t* heap_peek(heap_t* heap) {
+    if (heap_empty(heap))
+        return NULL;
+
+    return heap->els[0];
 }
 
 heap_el_t* heap_extract(heap_t* heap) {
@@ -65,11 +84,15 @@ heap_el_t* heap_extract(heap_t* heap) {
     heap->max_indx--;
     
     int i = 0;
-    while ((heap_left(i) < heap->max_indx && heap->els[i]->key < heap->els[heap_left(i)]->key) ||
-           (heap_right(i) < heap->max_indx && heap->els[i]->key < heap->els[heap_right(i)]->key)) {
+    double el_k = heap->els[i]->key;
+    double left_k = heap->els[heap_left(i)]->key;
+    double right_k = heap->els[heap_right(i)]->key;
+
+    while ((heap_left(i) < heap->max_indx && el_k < left_k) ||
+           (heap_right(i) < heap->max_indx && el_k < right_k)) {
         // know: one of my children is larger
         if (heap_right(i) < heap->max_indx) { // have two children
-            if (heap->els[heap_right(i)]->key < heap->els[heap_left(i)]->key)
+            if (left_k > right_k)
                 // left one is larger than right one
                 i = heap_swap(heap, i, heap_left(i)); 
             else
@@ -77,14 +100,37 @@ heap_el_t* heap_extract(heap_t* heap) {
         } else { // only one child, which has larger key
             i = heap_swap(heap, i, heap_left(i)); 
         }
+
+    el_k = heap->els[i]->key;
+    if (heap_left(i) < heap->max_indx)
+        left_k = heap->els[heap_left(i)]->key;
+    if (heap_right(i) < heap->max_indx)
+        right_k = heap->els[heap_right(i)]->key;
     }
     check_heap(heap);
     return max_el;
 }
 
-heap_t* heap_init(int size) {
+heap_t* heap_init(int size, int id) {
     heap_t* h = malloc(sizeof(heap_t));
+    if (h == NULL)
+        return NULL;
+
     h->els = malloc(size * sizeof(heap_el_t*));
+    if (h->els == NULL)
+        return NULL;
+
     h->max_indx = 0;
+    h->size = size;
+    h->id = id;
     return h;
+}
+
+bool heap_contains(heap_t* heap, int id) {
+    if (heap == NULL)
+        return false;
+    for (int i=0; i<heap->max_indx; i++)
+        if (heap->els[i]->node_id == id)
+            return true;
+    return false;
 }
