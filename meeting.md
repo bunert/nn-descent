@@ -1,5 +1,6 @@
 ## [3] C-Straightforward
-- Algorithm2 NNDescentFull implemented
+- Algorithm2 NNDescentBasic implemented
+-- Full 2nd step
 - Unittests
 -- each component / datastructyure (e.g. heap extract max, heaplist reverse)
 - Input (read from stdin), output result (KNN) to stdout [or file]
