@@ -91,6 +91,4 @@ int main(int argc, char *argv[])
 
     heap_list_free(B, data.size);
     free(data.values);
-
-
 }

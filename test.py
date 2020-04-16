@@ -1,4 +1,4 @@
-from main import NearestNeighbors, recall, Dataset, nearest_neighbors
+from main import NearestNeighbors, recall, Dataset, nearest_neighbors, reference_nearest_neighbors
 import unittest
 import numpy as np
 
