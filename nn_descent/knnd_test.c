@@ -203,9 +203,11 @@ int main(int argc, char *argv[])
 
     vec_t* B;
 
+    // 3 timing methods, use the first one as long as no overflow appears
+
     // RDTSC instruction:\n %lf cycles measured => %lf seconds,
     // assuming frequency is %lf MHz. (change in source file if different)
-    B = rdtsc(c, data, &l2, 20, 1.0, 0.001);
+    B = rdtsc(c, data, &l2, K, 1.0, 0.001);
     printf("RDTSC instruction:\n %lf cycles \n %lf seconds \n %lf MHz\n\n", *c, *c/(FREQUENCY), (FREQUENCY)/1e6);
 
     // C clock() function:\n %lf cycles measured. On some systems,
@@ -214,11 +216,11 @@ int main(int argc, char *argv[])
     // Unfortunately, it appears that CLOCKS_PER_SEC is sometimes set improperly.
     // (According to this variable, your computer should be running at %lf MHz).
     // In any case, dividing by this value should give a correct timing: %lf seconds.
-    B = c_clock(c, data, &l2, K, 1.0, 0.001);
-    printf("C clock() function:\n %lf cycles \n %lf seconds \n %lf MHz \n\n",*c, *c/CLOCKS_PER_SEC, (double) (CLOCKS_PER_SEC)/1e6);
+    // B = c_clock(c, data, &l2, K, 1.0, 0.001);
+    // printf("C clock() function:\n %lf cycles \n %lf seconds \n %lf MHz \n\n",*c, *c/CLOCKS_PER_SEC, (double) (CLOCKS_PER_SEC)/1e6);
 
 
-    // B = timeofday(c, data, &l2, 20, 1.0, 0.001);
+    // B = timeofday(c, data, &l2, K, 1.0, 0.001);
     // printf("C gettimeofday() function:\n %lf seconds \n\n",*c);
 
     // B = nn_descent(data, &l2, K, 1.0, 0.001);
