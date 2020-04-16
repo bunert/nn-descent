@@ -178,18 +178,18 @@ int main() {
                     }
                 }
             }
-
         }
         printf("C: %d\n", c);
 
     }
-        double correct = 0;
 
-        for (int i=0; i<N; i++) {
-            assert(heap_peek(heap_list_get(B,i))->node_id!=i);
-            if (heap_peek(heap_list_get(B, i))->node_id/1000 == i/1000)
-                correct += 1;
-        }
-        printf("Closest neighbor from same distribution: %f\n", correct/N);
+    double correct = 0;
+
+    for (int i=0; i<N; i++) {
+        assert(heap_peek(heap_list_get(B,i))->node_id!=i);
+        if (heap_peek(heap_list_get(B, i))->node_id/1000 == i/1000)
+            correct += 1;
+    }
+    printf("Closest neighbor from same distribution: %f\n", correct/N);
 
 }
