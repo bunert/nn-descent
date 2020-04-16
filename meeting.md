@@ -2,6 +2,7 @@
 - Algorithm2 NNDescentBasic implemented
 -- Full 2nd step
 - Unittests
+- Evaluate Unittest framework
 -- each component / datastructyure (e.g. heap extract max, heaplist reverse)
 - Input (read from stdin), output result (KNN) to stdout [or file]
 -- including K, number of iterations as parameters
