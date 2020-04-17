@@ -1,6 +1,8 @@
 import numpy as np
 import subprocess
 import sklearn
+import os
+from timing import parse_output, Timingdata
 
 class NearestNeighbors:
     # initialization with either a file
@@ -52,10 +54,30 @@ def nearest_neighbors(dataset, K, metric):
     return NearestNeighbors(nbrs_indices, metric)
 
 # performs reference knndescent on dataset
-def reference_nearest_neighbors(dataset, K, metric):
+# returns nearestneighbors and timing
+def c_nearest_neighbors(directory, dataset, K, metric, repetition):
     # calls reference implementation for NN
+
+
     if metric != 'l2':
         raise ValueError(metric + ' not implemented')
     dataset.save('data')
-    subprocess.run(['nn_descent/a.out','data','output', str(dataset.N), str(dataset.D), str(K)], capture_output=False)
-    return NearestNeighbors(filename='output')
+
+    path = os.path.join(directory, "a.out")
+
+    cycles = np.zeros(repetition)
+    runtime = np.zeros(repetition)
+    nn_list = []
+
+    for i in range(repetition):
+        process = subprocess.run([path,'data','output', str(dataset.N), str(dataset.D), str(K)], check=True, stdout=subprocess.PIPE, universal_newlines=True)
+        txt = process.stdout.splitlines()
+
+        c,t  = parse_output(txt)
+        nn_data = NearestNeighbors(filename='output')
+
+        cycles[i] = c
+        runtime[i] = t
+        nn_list.append(nn_data)
+
+    return nn_list, Timingdata(cycles,runtime, directory)
