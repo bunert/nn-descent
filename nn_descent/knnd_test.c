@@ -9,7 +9,7 @@
 #include <time.h>
 #include "tsc_x86.h"
 
-#define NUM_RUNS 1
+#define NUM_RUNS 10
 #define CYCLES_REQUIRED 1e8
 //TODO adapt frequency!
 #define FREQUENCY 2.7e9
@@ -105,12 +105,18 @@ vec_t* rdtsc(double *c, dataset_t data, float(*metric)(float*, float*, int), int
     }
 #endif
 
-    start = start_tsc();
-    for (i = 0; i < num_runs; ++i) {
-        B = nn_descent(data, metric, k, rho, delta);
-    }
+    // start = start_tsc();
+    // for (i = 0; i < num_runs; ++i) {
+    //     B = nn_descent(data, metric, k, rho, delta);
+    // }
+    // *c = (double) stop_tsc(start)/num_runs;
 
-    *c = (double) stop_tsc(start)/num_runs;
+    start = start_tsc();
+
+    B = nn_descent(data, metric, k, rho, delta);
+
+    *c = (double) stop_tsc(start);
+
     return B;
 }
 
@@ -208,7 +214,7 @@ int main(int argc, char *argv[])
     // RDTSC instruction:\n %lf cycles measured => %lf seconds,
     // assuming frequency is %lf MHz. (change in source file if different)
     B = rdtsc(c, data, &l2, K, 1.0, 0.001);
-    printf("RDTSC instruction:\n %lf cycles \n %lf seconds \n %lf MHz\n\n", *c, *c/(FREQUENCY), (FREQUENCY)/1e6);
+    printf("Timing-method RDTSC \n%0.1lf cycles \n%lf seconds \n%0.1lf MHz\n\n", *c, *c/(FREQUENCY), (FREQUENCY)/1e6);
 
     // C clock() function:\n %lf cycles measured. On some systems,
     // this number seems to be actually computed from a timer in

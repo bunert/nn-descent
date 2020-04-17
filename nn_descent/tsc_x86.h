@@ -35,7 +35,7 @@
 #if !defined(WIN32) || defined(__GNUC__)
 
 	typedef union
-	{       myInt64 int64;
+	{     myInt64 int64;
 		    struct {INT32 lo, hi;} int32;
 	} tsc_counter;
 
@@ -43,26 +43,6 @@
 	  ASM VOLATILE ("rdtsc" : "=a" ((cpu_c).int32.lo), "=d"((cpu_c).int32.hi))
 	#define CPUID() \
 		ASM VOLATILE ("cpuid" : : "a" (0) : "bx", "cx", "dx" )
-
-/* ======================== WIN32 ======================= */
-#else
-
-	typedef union
-	{       myInt64 int64;
-			struct {INT32 lo, hi;} int32;
-	} tsc_counter;
-
-	#define RDTSC(cpu_c)   \
-	{       __asm rdtsc    \
-			__asm mov (cpu_c).int32.lo,eax  \
-			__asm mov (cpu_c).int32.hi,edx  \
-	}
-
-	#define CPUID() \
-	{ \
-		__asm mov eax, 0 \
-		__asm cpuid \
-	}
 
 #endif
 

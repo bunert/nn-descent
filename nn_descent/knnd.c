@@ -74,7 +74,7 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, fl
         printf("error: neighborhood size must be less than dataset size\n");
         return NULL;
     }
-    printf("beginning nn descent...\n");
+    //printf("beginning nn descent...\n");
 
     vec_t* B     = heap_list_create(data.size, k);
     vec_t* old   = heap_list_create(data.size, k);
@@ -94,7 +94,7 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, fl
 
     // initialize heap list B
     for (int i = 0; i < data.size; i++) {
-        // sample 
+        // sample
         for (int j = 0; j < k;) {
             node_t t = {(int)rand() % data.size, FLT_MAX, true};
             t.new = true;
@@ -146,10 +146,10 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, fl
                 }
             }
         }
-        printf("iteration complete: %d / %d\n", c, stop_iter);
+        //printf("iteration complete: %d / %d\n", c, stop_iter);
     } while (c >= stop_iter);
-
-    printf("done, cleaning up...\n");
+    printf("NNDescent finished \n");
+    //printf("done, cleaning up...\n");
 
     vec_free(&sample_buf);
     heap_list_free(old, data.size);
@@ -195,4 +195,3 @@ int sample_neighbors(vec_t* dst, vec_t* src, int k, bool use_new)
 
     return j;
 }
-
