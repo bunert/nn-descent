@@ -37,6 +37,7 @@ class AudioDataset(Dataset):
             X = np.frombuffer(np.array(f.read(4*size*dim_elem_size)), dtype=np.float32)
 
             X = X.reshape((size,dim_elem_size))
+            self.X = X
 
 #            X = np.zeros((size,dim_elem_size))
 #
