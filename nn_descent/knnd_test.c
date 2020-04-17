@@ -8,13 +8,17 @@
 #include <sys/time.h>
 #include <time.h>
 #include "tsc_x86.h"
+#include <unistd.h>
 
-#define NUM_RUNS 10
+#define NUM_RUNS 1
 #define CYCLES_REQUIRED 1e8
 //TODO adapt frequency!
 #define FREQUENCY 2.7e9
-
 // #define CALIBRATE
+
+char * const nulFileName = "/dev/null";
+#define CROSS_DUP(fd) dup(fd)
+#define CROSS_DUP2(fd, newfd) dup2(fd, newfd)
 
 float l2(float* v1, float* v2, int d)
 {
@@ -85,6 +89,9 @@ vec_t* rdtsc(double *c, dataset_t data, float(*metric)(float*, float*, int), int
     num_runs = NUM_RUNS;
     vec_t* B;
 
+    // for stdout surpression
+    int stdoutBackupFd;
+    FILE *nullOut;
     /*
      * The CPUID instruction serializes the pipeline.
      * Using it, we can create execution barriers around the code we want to time.
@@ -92,6 +99,15 @@ vec_t* rdtsc(double *c, dataset_t data, float(*metric)(float*, float*, int), int
      * avoid measurements bias due to the timing overhead.
      */
 #ifdef CALIBRATE
+    /* duplicate stdout */
+    stdoutBackupFd = CROSS_DUP(STDOUT_FILENO);
+
+    //pront remaining buffered output
+    fflush(stdout);
+    nullOut = fopen(nulFileName, "w");
+    CROSS_DUP2(fileno(nullOut), STDOUT_FILENO);
+
+
     while(num_runs < (1 << 14)) {
         start = start_tsc();
         for (i = 0; i < num_runs; ++i) {
@@ -103,19 +119,19 @@ vec_t* rdtsc(double *c, dataset_t data, float(*metric)(float*, float*, int), int
 
         num_runs *= 2;
     }
+    fflush(stdout);
+    fclose(nullOut);
+
+    // Restore stdout
+    CROSS_DUP2(stdoutBackupFd, STDOUT_FILENO);
+    close(stdoutBackupFd);
 #endif
 
-    // start = start_tsc();
-    // for (i = 0; i < num_runs; ++i) {
-    //     B = nn_descent(data, metric, k, rho, delta);
-    // }
-    // *c = (double) stop_tsc(start)/num_runs;
-
     start = start_tsc();
-
-    B = nn_descent(data, metric, k, rho, delta);
-
-    *c = (double) stop_tsc(start);
+    for (i = 0; i < num_runs; ++i) {
+        B = nn_descent(data, metric, k, rho, delta);
+    }
+    *c = (double) stop_tsc(start)/num_runs;
 
     return B;
 }
@@ -214,7 +230,7 @@ int main(int argc, char *argv[])
     // RDTSC instruction:\n %lf cycles measured => %lf seconds,
     // assuming frequency is %lf MHz. (change in source file if different)
     B = rdtsc(c, data, &l2, K, 1.0, 0.001);
-    printf("Timing-method RDTSC \n%0.1lf cycles \n%lf seconds \n%0.1lf MHz\n\n", *c, *c/(FREQUENCY), (FREQUENCY)/1e6);
+    printf("%0.1lf cycles \n%lf seconds\n\n", *c, *c/(FREQUENCY)); // removed %0.1lf MHz -> (FREQUENCY)/1e6
 
     // C clock() function:\n %lf cycles measured. On some systems,
     // this number seems to be actually computed from a timer in
