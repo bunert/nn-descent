@@ -1,13 +1,13 @@
 # Week 2
 ## Review
 ## Discussion
-
 - Cost analysis
     - cost measure? [distance metric, comparisons?]
     - runtime depends on input data, how to determine cost? [Instrumentation of code, ]
 
 - Performance Plot dataset
     - need dataset which scales well in terms of cost [in whatever measure we are going to define] and runtime for plot 
+    - could use generative model to scale dataset
 
 - Validation
     - script to automate test(s)
@@ -16,6 +16,10 @@
     - define correctness (same as in original paper, recall)
 
 ## Tasks
+- Jonas: see how syntethic dataset scales...
+- Sam: Comment code, explore optimization possibilities
+- Dan: Validation, instrumentation/profiling of code
+- Tobi: Cost analysis
 
 # Week 1
 ## Review
