@@ -1,4 +1,25 @@
-## [3] C-Straightforward
+# Week 2
+## Review
+## Discussion
+- Cost analysis
+-- cost measure? [distance metric, comparisons?]
+-- runtime depends on input data, how to determine cost? [Instrumentation of code, ]
+
+- Performance Plot dataset
+-- need dataset which scales well in terms of cost [in whatever measure we are going to define] and runtime for plot 
+
+- Validation
+-- script to automate test(s)
+--- end to end recall test
+--- run all unit tests
+-- define correctness (same as in original paper, recall)
+
+## Tasks
+
+# Week 1
+## Review
+## Discussion
+### [3] C-Straightforward
 - Algorithm2 NNDescentBasic implemented
 -- Full 2nd step
 - Unittests
@@ -7,7 +28,7 @@
 - Input (read from stdin), output result (KNN) to stdout [or file]
 -- including K, number of iterations as parameters
 
-## [4] Validation
+### [4] Validation
 - Trivial O(n^2) solution
 - Modify "official" implementation to our input/output method
 - Comparison of results
@@ -16,7 +37,7 @@
 - Simple parametrizable synthetic datasets
 - datasets from paper (Coral etc.)
 
-## [5] Timing
+### [5] Timing
 - Need: synthetic dataset, on which runtime has low variance and scales with input size
 - Concept for for measuring T(n) multiple times (and taking median? smth like that)
 - Infrastructure
@@ -25,4 +46,7 @@
 -- call function
 - maybe: think about benchmarking smaller parts of the code [critical parts]
 - [8]: use infrastructure to benchmark reference C implementation
-
+## Tasks
+Tobi, Jonas, Dan: C reference implementation to get to know the algorithm
+Tobi: Timing
+Dan: Validation
