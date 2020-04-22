@@ -1,18 +1,19 @@
 # Week 2
 ## Review
 ## Discussion
+
 - Cost analysis
--- cost measure? [distance metric, comparisons?]
--- runtime depends on input data, how to determine cost? [Instrumentation of code, ]
+    - cost measure? [distance metric, comparisons?]
+    - runtime depends on input data, how to determine cost? [Instrumentation of code, ]
 
 - Performance Plot dataset
--- need dataset which scales well in terms of cost [in whatever measure we are going to define] and runtime for plot 
+    - need dataset which scales well in terms of cost [in whatever measure we are going to define] and runtime for plot 
 
 - Validation
--- script to automate test(s)
---- end to end recall test
---- run all unit tests
--- define correctness (same as in original paper, recall)
+    - script to automate test(s)
+    - end to end recall test
+    - run all unit tests
+    - define correctness (same as in original paper, recall)
 
 ## Tasks
 
