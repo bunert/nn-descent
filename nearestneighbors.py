@@ -2,7 +2,11 @@ import numpy as np
 import subprocess
 import sklearn
 import os
+import time
 from timing import parse_output, Timingdata
+from numba import set_num_threads
+set_num_threads(1)
+from pynndescent import NNDescent
 
 class NearestNeighbors:
     # initialization with either a file
@@ -81,3 +85,39 @@ def c_nearest_neighbors(directory, dataset, K, metric, repetition):
         nn_list.append(nn_data)
 
     return nn_list, Timingdata(cycles,runtime, directory)
+
+
+
+def py_nearest_neighbors(dataset, K, metric, repetition):
+    # (try) to enforce pynndescent using only a single thread:
+    env_list = ['MKL_NUM_THREADS', 'OMP_NUM_THREADS']
+    for e in env_list:
+        os.putenv(e, '1')
+
+    # a point is his own NN
+    # thats why we query K+1 and remove afterwards
+
+    runtime = np.zeros(repetition+1)
+    nn_list = []
+    for i in range(repetition+1):
+        start = time.perf_counter()
+        index = NNDescent(dataset.X,
+                          n_neighbors=(K+1),
+#                          verbose=True,
+                          tree_init=False, # some fancy init
+                          n_jobs=1)
+
+        elapsed = time.perf_counter()-start
+        runtime[i] = elapsed
+
+        nn_arr = index._neighbor_graph[0]
+        assert((nn_arr[:,0] == np.array(range(dataset.N))).all())
+        nn_list.append(NearestNeighbors(nn_arr[:,1:], metric))
+
+    # restore env variables
+    for e in env_list:
+        os.unsetenv(e)
+
+    # skip first repetition, since JIT does a lot of work then...
+    return nn_list[1:], Timingdata(None, runtime[1:], "pynndescent")
+
