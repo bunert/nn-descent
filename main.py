@@ -8,7 +8,7 @@ import urllib.request
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-p','--path', help='path to a.out executable')
+parser.add_argument('-p','--path', required=True, help='path to a.out executable')
 parser.add_argument('-r','--repetitions', help='repetitions', default=1, type=int)
 parser.add_argument('-k', help='k', default=20, type=int)
 parser.add_argument('-m', '--metric', help='l2', default='l2')
