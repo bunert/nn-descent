@@ -21,8 +21,11 @@ print(args)
 dataset = {}
 
 if args.dataset == 'gaussian':
-    dataset = GaussianDataset(10,10000,200)
+    # 200 datapoints sampled from each of 10 gaussians centered around canonical basis vector
+    dataset = GaussianDataset(dimension=10, variance=10000, n=200)
 elif args.dataset == 'audio':
+    # Audio dataset as described in the NN-Descent publication
+    #  54,387 points (192 dimensional)
     my_file = Path("audio.data")
     if not my_file.is_file():
         print("audio.data not here, downloading...")

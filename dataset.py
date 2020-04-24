@@ -7,10 +7,15 @@ class Dataset:
         self.D = X.shape[1]
 
     def save(self, filename):
+        # save dataset to space separated values file
         np.savetxt(filename, self.X)
 
 class GaussianDataset(Dataset):
     def __init__(self, dimension, variance, n):
+        # generate n points from each of dimension many sperical gaussians
+        # the gaussians are each centered around a canonical basisvector
+        # n*dimension many points in total
+
         cov = variance * np.identity(dimension)
         X = []
         for i in range(dimension):
@@ -21,6 +26,8 @@ class GaussianDataset(Dataset):
         Dataset.__init__(self, X)
 
 class AudioDataset(Dataset):
+
+    # Audio dataset as described in the publicaiton. 54,387 points (192 dimensional)
     def __init__(self):
         path = 'audio.data'
         # read data as specified here
