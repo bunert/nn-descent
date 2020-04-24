@@ -145,21 +145,6 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, fl
     return B;
 }
 
-int reverse_heap_list(vec_t* dst, vec_t* src, int size)
-{
-    vec_clear(dst);
-    for (int v = 0; v < size; v++) {
-        for (int u = 0; u < src[v].size; u++) {
-            node_t t = src[v].arr[u];
-            int dst_index = t.id;
-            t.id = v;
-            if (heap_insert(&dst[dst_index], &t) == -1) return 1;
-        }
-    }
-
-    return 0;
-}
-
 int heap_insert_bounded(vec_t* h, node_t* node, int k)
 {
     if (h->size<k) {
