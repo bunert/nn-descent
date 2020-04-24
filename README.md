@@ -19,19 +19,19 @@ Useful links:
 
 ## Installation
 
-After cloning the repository compile the C-code in the directory 'nn_descent' with the following command:
+After cloning the repository compile the C-code in the directory `nn_descent` with the following command:
 
-'''
+```
 gcc  -O3 -ffast-math -march=native -o a.out knnd.c knnd_test.c vec.c -lm
-'''
+```
 
 Additionally you will have to create a [Python virtual environment](https://docs.python.org/3/tutorial/venv.html).
 To do so you can follow these steps:
 
 1. create the environment in the chosen path (e.g ./pip-env)
-    '''
+    ```
     python -m venv ./pip-env
-    '''
-2. activate the environment 'source pip-env/bin/activate'
+    ```
+2. activate the environment `source pip-env/bin/activate`
 3. install the requirements listed in requirements.txt
-    'pip install -r requirements.txt'
+    `pip install -r requirements.txt`
