@@ -22,7 +22,7 @@ dataset = {}
 
 if args.dataset == 'gaussian':
     # 200 datapoints sampled from each of 10 gaussians centered around canonical basis vector
-    dataset = GaussianDataset(dimension=10, variance=10000, n=200)
+    dataset = GaussianDataset(dimension=10, variance=200, n=10000)
 elif args.dataset == 'audio':
     # Audio dataset as described in the NN-Descent publication
     #  54,387 points (192 dimensional)
