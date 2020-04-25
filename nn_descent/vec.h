@@ -12,6 +12,7 @@ typedef struct {
 
 
 // vector of dimension _capacity. Used for the heaps
+// not a datapoint
 typedef struct {
     int size; // current number of nodes in arr
     int _capacity; // maximum number of nodes in arr (K)

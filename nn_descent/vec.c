@@ -17,6 +17,7 @@ int vec_create(vec_t* v, int capacity)
     return 1;
 }
 
+// logically remove all elements from the heap
 void vec_clear(vec_t* v) { if (v) v->size = 0; }
 
 static int _vec_check_size(vec_t* h) {
@@ -35,6 +36,9 @@ static int _vec_check_size(vec_t* h) {
 
 int vec_insert(vec_t* h, node_t* node)
 {
+    // copy node into h
+    // fails if vec_t is already full
+    
     if (!_vec_check_size(h)) return 0;
     h->arr[h->size++] = *node;
     return 1;
