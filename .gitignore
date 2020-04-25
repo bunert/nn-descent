@@ -1,2 +1,6 @@
 audio.data
 __pycache__
+
+pip-env
+.vscode
+a.out
