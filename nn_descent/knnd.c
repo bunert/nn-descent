@@ -99,17 +99,18 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, fl
     }
 
     int c;
-    int stop_iter = 0.1*delta * data.size * k;
+    int stop_iter = delta * data.size * k;
+    int max_candidates = 50;
     do {
         heap_list_free(old, data.size);
         heap_list_free(new, data.size);
-        old   = heap_list_create(data.size, k);
-        new   = heap_list_create(data.size, k);
+        old   = heap_list_create(data.size, max_candidates);
+        new   = heap_list_create(data.size, max_candidates);
 
-        sample_reverse_union(new, old, B, k, data.size);
+        sample_reverse_union(new, old, B, max_candidates, data.size);
 
         c = 0;
-        for (int v = 0; v < data.size; v++) {   // TODO: parallel
+        for (int v = 0; v < data.size; v++) {
             for (int i = 0; i < new[v].size; i++) {
                 for (int k=0; k<2; k++) {
                     vec_t* heap_list = (k==0) ? new : old;
@@ -145,9 +146,10 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, fl
     return B;
 }
 
-int heap_insert_bounded(vec_t* h, node_t* node, int k)
+// inserts given node while keeping the number of elements in heap <= max_neighbors
+int heap_insert_bounded(vec_t* h, node_t* node, int max_neighbors)
 {
-    if (h->size<k) {
+    if (h->size<max_neighbors) {
         return heap_insert(h, node);
     } else {
         if (heap_find_by_index(h, node->id) >= 0)
@@ -161,7 +163,7 @@ int heap_insert_bounded(vec_t* h, node_t* node, int k)
 
 }
 
-int sample_reverse_union(vec_t* new, vec_t* old, vec_t* B, int k, int N) {
+int sample_reverse_union(vec_t* new, vec_t* old, vec_t* B, int max_candidates, int N) {
     // this function samples, reverses and does the union all at once
     for (int i=0; i<N; i++) {
         vec_t heap = B[i];
@@ -169,6 +171,11 @@ int sample_reverse_union(vec_t* new, vec_t* old, vec_t* B, int k, int N) {
         node_t *arr = heap.arr;
 
         for (int j=0; j<heap.size; j++) {
+            // here we insert connections using some random weight in [0,1]
+            // this corresponds to using the max_candidates-many neighbors with
+            // the lowest (random) weight, which should be equivalent to sampling
+            // max_candidates-many entries u.a.r. from the neighors of each node
+            
             node_t n = arr[j];
             int v = n.id;
             float rand_weight = rand()/(float)RAND_MAX;
@@ -176,10 +183,11 @@ int sample_reverse_union(vec_t* new, vec_t* old, vec_t* B, int k, int N) {
             // depending on flag select new or old heaplist
             vec_t* heap_list = (n.new) ? new : old;
             
-            // TODO: check if heap_list addressable like array with id !!
-            (heap_insert_bounded(&heap_list[u], & (node_t) {v, rand_weight, n.new}, k));
-            // reverse (add to B[v] if rand_weight amongst the K smallest...)
-            (heap_insert_bounded(&heap_list[v], & (node_t) {u, rand_weight, n.new}, k));
+            // existing connection
+            (heap_insert_bounded(&heap_list[u], & (node_t) {v, rand_weight, n.new}, max_candidates));
+
+            // reverse connection (add to B[v] if rand_weight amongst the K smallest...)
+            (heap_insert_bounded(&heap_list[v], & (node_t) {u, rand_weight, n.new}, max_candidates));
         }
     }
 
@@ -189,11 +197,9 @@ int sample_reverse_union(vec_t* new, vec_t* old, vec_t* B, int k, int N) {
         vec_t heap = new[i];
         int u = i;
         node_t *arr = heap.arr;
-        // printf("\nnode %d: ", u);
         for (int j=0; j<heap.size; j++) {
             node_t n = arr[j];
             int v = n.id;
-            // printf("%d ", v);
             int index = heap_find_by_index(&B[u], v);
             if (index >= 0)
                 B[u].arr[index].new = false;
