@@ -1,5 +1,6 @@
 #include "vec.h"
 #include <float.h>
+#include <assert.h>
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -20,6 +21,8 @@ void vec_clear(vec_t* v) { if (v) v->size = 0; }
 
 static int _vec_check_size(vec_t* h) {
     if (h->size + 1 > h->_capacity) {
+        // this shouldnt happen anymore with the upcoming changes
+        // assert(false);
         node_t* tmp;
         h->_capacity *= 2;
         tmp = realloc(h->arr, sizeof(node_t)*(h->_capacity));
@@ -39,7 +42,7 @@ int vec_insert(vec_t* h, node_t* node)
 
 int heap_insert(vec_t* h, node_t* node)
 {
-    if (heap_find_by_index(h, node->id) != -1) return 0;
+    if (heap_find_by_index(h, node->id) >= 0) return 0;
     if (!_vec_check_size(h)) return -1;
 
     // add new node, then bubble up
