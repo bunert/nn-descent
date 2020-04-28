@@ -11,7 +11,6 @@ int vec_create(vec_t* v, int capacity)
     v->size = 0;
     v->_capacity = capacity;
     v->arr = malloc(sizeof(node_t) * capacity);
-    v->min = FLT_MAX;
     if (v->arr == NULL) return 0;
 
     return 1;
@@ -65,7 +64,6 @@ int heap_insert(vec_t* h, node_t* node)
     }
 
 
-    h->min = node->val < h->min ? node->val : h->min;
     h->size++;
     return 1;
 }

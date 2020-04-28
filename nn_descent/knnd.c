@@ -73,7 +73,6 @@ int nn_update(vec_t* h, node_t* node)
     // insert node into maxheap h if it is more similar than the current root
 
     if (node->val >= h->arr[0].val || heap_find_by_index(h, node->id) != -1) return 0;
-    h->min = node->val < h->min ? node->val : h->min; // TODO: unify heap implementation used here and elsewhere?
     h->arr[0] = *node;
     max_heapify(h, 0);
     return 1;
