@@ -1,3 +1,23 @@
+# Week 3
+## Discussion
+- Git Tag for different versions
+- Keep API clean when trying to increase performance
+- What is the cost measure: Flops, similarity?
+- Solve problem when using too many points (malloc)
+- New main file, which executes two things: performance, runtime
+- Do we need tests or just referring to recall? 
+
+## Tasks
+- Create presentation (5 slides max.) (3th/4th of May)
+- Use faster random number generator (replace crand)
+- Change structs
+- Add const to integer
+
+- Dan: GCC Profiler
+- Samuel: Add some improvements (int to const, scalar replacment, make struct better)
+- Tobias: Blocking/Random number generator (comment which parts are blocked)
+- Jonas: small changes to improvment and measure it at the end (Standard C optimization) (scalar replacment, int to const)
+
 # Week 2
 ## Review
 ## Discussion
