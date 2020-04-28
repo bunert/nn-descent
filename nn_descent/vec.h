@@ -3,14 +3,20 @@
 #include <stdbool.h>
 
 typedef struct {
-    int id;
-    float val;
+    // element of a heap
+
+    int id; // node id of corresponding point
+    float val; // dissimilarity to heap-owner point
     bool new;
 } node_t;
 
+
+// vector of dimension _capacity. Used for the heaps
+// not a datapoint
 typedef struct {
-    int size, _capacity;
-    float min;
+    int size; // current number of nodes in arr
+    int _capacity; // maximum number of nodes in arr (K)
+    float min; // smallest dissimilarity of node in heap
     node_t* arr;
 } vec_t;
 
