@@ -27,6 +27,8 @@ int make_test_data(dataset_t* data, int n, int d)
 
 vec_t* heap_list_create(int size, int k)
 {
+    // create list of 'size' many max heaps
+
     vec_t* hl = malloc(sizeof(vec_t) * size);
     hl->size = size;
     if (!hl) return NULL;
@@ -49,10 +51,16 @@ void heap_list_free(vec_t* hl, int size)
 
 void max_heapify(vec_t* h, int i)
 {
+    // enforce max-heap property after having removed maximum
+    // the node at index i has replaced the old maximum as root
+    // trickle down element i recursively
+
+    // assumes that the heap always contains '_capacity' many elements
+
     int l = (i*2)+1, r = (i*2)+2, max;
     max = (l < h->_capacity && h->arr[l].val > h->arr[i].val) ? l : i;
     max = (r < h->_capacity && h->arr[r].val > h->arr[max].val) ? r : max;
-    if (max != i) {
+    if (max != i) { //one of children is larger -> swap
         node_t t = h->arr[i];
         h->arr[i] = h->arr[max];
         h->arr[max] = t;
@@ -62,6 +70,8 @@ void max_heapify(vec_t* h, int i)
 
 int nn_update(vec_t* h, node_t* node)
 {
+    // insert node into maxheap h if it is more similar than the current root
+
     if (node->val >= h->arr[0].val || heap_find_by_index(h, node->id) != -1) return 0;
     h->min = node->val < h->min ? node->val : h->min; // TODO: unify heap implementation used here and elsewhere?
     h->arr[0] = *node;
@@ -71,11 +81,18 @@ int nn_update(vec_t* h, node_t* node)
 
 vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, float rho, float delta)
 {
+    // Implementation of Algorithm 2: NNDescentFull from the publication
+
+    // metric: function returning disimilarity between two vectors of given dimension
+    // rho: sample rate in (0,1] (2.5 Sampling)
+    // delta: precision parameter, terminate if less than delta*K*N updates in an iteration
+
     if (k >= data.size) {
         printf("error: neighborhood size must be less than dataset size\n");
         return NULL;
     }
 
+    // create lists with the maxheaps for each datapoint
     vec_t* B     = heap_list_create(data.size, k);
     vec_t* old   = heap_list_create(data.size, k);
     vec_t* new   = heap_list_create(data.size, k);
@@ -98,14 +115,14 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, fl
         }
     }
 
-    int c;
-    int stop_iter = delta * data.size * k;
+    int c; // number of updates in this iteration
+    int stop_iter = delta * data.size * k; // terminate if less than this many changes made
     int max_candidates = 50;
     do {
         heap_list_free(old, data.size);
         heap_list_free(new, data.size);
-        old   = heap_list_create(data.size, max_candidates);
-        new   = heap_list_create(data.size, max_candidates);
+        old = heap_list_create(data.size, max_candidates);
+        new = heap_list_create(data.size, max_candidates);
 
         sample_reverse_union(new, old, B, max_candidates, data.size);
 
