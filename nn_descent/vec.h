@@ -5,6 +5,8 @@
 typedef struct {
     // element of a heap
 
+    // as float is 32 bit and on my computer int is aswell
+    // reorder should not matter
     int id; // node id of corresponding point
     float val; // dissimilarity to heap-owner point
     bool new;
@@ -14,10 +16,10 @@ typedef struct {
 // vector of dimension _capacity. Used for the heaps
 // not a datapoint
 typedef struct {
+    node_t* arr;
     int size; // current number of nodes in arr
     int _capacity; // maximum number of nodes in arr (K)
-    float min; // smallest dissimilarity of node in heap
-    node_t* arr;
+
 } vec_t;
 
 int vec_create(vec_t*, int);
