@@ -138,14 +138,15 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), const int
             // Scalar replacement
             vec_t* heap_list0 = new;
             vec_t* heap_list1 = old;
+            const int tmp_v_size0 = heap_list0[v].size;
+            const int tmp_v_size00 = heap_list0[(v + 1)].size;
+            const int tmp_v_size1 = heap_list1[v].size;     
+            const int tmp_v_size11 = heap_list1[(v + 1)].size;
 
             // for loop for v=i
-            for (int i = 0; i < new[v].size; i++) {
+            for (int i = 0; i < new[v].size; i++) {    
 
-                // Scalar replacement
-                const int tmp_v_size0 = heap_list0[v].size;
-                const int tmp_v_size1 = heap_list1[v].size;
-
+                // Loop unrolling of k=0/k=1
                 // for loop for k=0
                 for (int j = 0; j < tmp_v_size0; j++) {
                     if (i == j) continue;
@@ -189,12 +190,8 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), const int
             for (int i = 0; i < new[(v+1)].size; i++) {
 
                 // Loop unrolling of k=0/k=1
-                // Scalar replacement
-                const int tmp_v_size0 = heap_list0[(v + 1)].size;
-                const int tmp_v_size1 = heap_list1[(v + 1)].size;
-
                 // for loop for k=0
-                for (int j = 0; j < tmp_v_size0; j++) {
+                for (int j = 0; j < tmp_v_size00; j++) {
                     if (i == j) continue;
 
                     node_t u1, u2;
@@ -213,7 +210,7 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), const int
                 }
 
                 // for loop for k=1
-                for (int j = 0; j < tmp_v_size1; j++) {
+                for (int j = 0; j < tmp_v_size11; j++) {
                     if (i == j) continue;
 
                     node_t u1, u2;
