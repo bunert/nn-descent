@@ -16,6 +16,7 @@ Useful links:
  - Publication: https://www.cs.princeton.edu/cass/papers/www11.pdf
  - Project System: https://medellin.inf.ethz.ch/courses/263-2300-ETH/
  - PyNNDescent: https://github.com/lmcinnes/pynndescent
+ - [Publication with improvements](https://arxiv.org/pdf/1804.03032.pdf)
 
 ## Installation
 
