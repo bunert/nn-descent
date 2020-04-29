@@ -11,6 +11,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-p','--path', required=True, help='path to a.out executable')
 parser.add_argument('-r','--repetitions', help='repetitions', default=1, type=int)
 parser.add_argument('-k', help='k', default=20, type=int)
+parser.add_argument('-n', help='#points per gaussian', default=100, type=int) 
 parser.add_argument('-m', '--metric', help='l2', default='l2')
 parser.add_argument('-d', '--dataset', help='audio or gaussian', default='gaussian')
 parser.add_argument('-v', '--verify', help='compare recall to pynndescent', action='store_true', dest='verify')
@@ -22,7 +23,7 @@ dataset = {}
 
 if args.dataset == 'gaussian':
     # 200 datapoints sampled from each of 10 gaussians centered around canonical basis vector
-    dataset = GaussianDataset(dimension=10, variance=2.0, n=1000)
+    dataset = GaussianDataset(dimension=10, variance=2.0, n=args.n)
 elif args.dataset == 'audio':
     # Audio dataset as described in the NN-Descent publication
     #  54,387 points (192 dimensional)

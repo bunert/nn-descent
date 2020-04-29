@@ -43,7 +43,7 @@ int vec_insert(vec_t* h, node_t* node)
     return 1;
 }
 
-int heap_insert(vec_t* h, node_t* node)
+int heap_insert(vec_t* h, const node_t* node)
 {
     if (heap_find_by_index(h, node->id) >= 0) return 0;
     if (!_vec_check_size(h)) return -1;
@@ -74,7 +74,11 @@ int heap_insert(vec_t* h, node_t* node)
 
 int heap_union(vec_t* h1, vec_t* h2)
 {
-    for (int i = 0; i < h2->size; i++) {
+
+    // Scalar replacement
+    const int tmp_h2_size = h2->size;
+
+    for (int i = 0; i < tmp_h2_size; i++) {
         if (heap_insert(h1, &(h2->arr[i])) == -1) return 0;
     }
     return 1;
