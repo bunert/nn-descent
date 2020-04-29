@@ -8,7 +8,7 @@
 #include <stdbool.h>
 #include <assert.h>
 
-int make_test_data(dataset_t* data, int n, int d)
+int make_test_data(dataset_t* data, const int n, const int d)
 {
     data->values = malloc((sizeof(float*) * n) + (n * d * sizeof(float)));
     if (!(data->values)) return 1;
@@ -25,7 +25,7 @@ int make_test_data(dataset_t* data, int n, int d)
     return 0;
 }
 
-vec_t* heap_list_create(int size, int k)
+vec_t* heap_list_create(const int size, const int k)
 {
     // create list of 'size' many max heaps
 
@@ -40,7 +40,7 @@ vec_t* heap_list_create(int size, int k)
     return hl;
 }
 
-void heap_list_free(vec_t* hl, int size)
+void heap_list_free(vec_t* hl, const int size)
 {
     for (int i = 0; i < size; i++) {
         vec_free(&hl[i]);
@@ -49,7 +49,7 @@ void heap_list_free(vec_t* hl, int size)
     free(hl);
 }
 
-void max_heapify(vec_t* h, int i)
+void max_heapify(vec_t* h, const int i)
 {
     // enforce max-heap property after having removed maximum
     // the node at index i has replaced the old maximum as root
@@ -57,7 +57,8 @@ void max_heapify(vec_t* h, int i)
 
     // assumes that the heap always contains '_capacity' many elements
 
-    int l = (i*2)+1, r = (i*2)+2, max;
+    const int l = (i * 2) + 1, r = (i * 2) + 2;
+    int max;
     max = (l < h->_capacity && h->arr[l].val > h->arr[i].val) ? l : i;
     max = (r < h->_capacity && h->arr[r].val > h->arr[max].val) ? r : max;
     if (max != i) { //one of children is larger -> swap
@@ -78,7 +79,7 @@ int nn_update(vec_t* h, node_t* node)
     return 1;
 }
 
-vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, float rho, float delta)
+vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), const int k, const float rho, const float delta)
 {
     // Implementation of Algorithm 2: NNDescentFull from the publication
 
@@ -86,52 +87,59 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, fl
     // rho: sample rate in (0,1] (2.5 Sampling)
     // delta: precision parameter, terminate if less than delta*K*N updates in an iteration
 
-    if (k >= data.size) {
+    // Scalar replacement with constant int
+    const int tmp_data_size = data.size;
+    const int tmp_data_dim = data.dim;
+
+    if (k >= tmp_data_size) {
         printf("error: neighborhood size must be less than dataset size\n");
         return NULL;
     }
 
     // create lists with the maxheaps for each datapoint
-    vec_t* B     = heap_list_create(data.size, k);
-    vec_t* old   = heap_list_create(data.size, k);
-    vec_t* new   = heap_list_create(data.size, k);
+    vec_t* B     = heap_list_create(tmp_data_size, k);
+    vec_t* old   = heap_list_create(tmp_data_size, k);
+    vec_t* new   = heap_list_create(tmp_data_size, k);
 
     if (!B || !old || !new) {
         printf("error: failed to allocate one or more heap lists\n");
-        if (B) heap_list_free(B, data.size);
-        if (old) heap_list_free(old, data.size);
-        if (new) heap_list_free(new, data.size);
+        if (B) heap_list_free(B, tmp_data_size);
+        if (old) heap_list_free(old, tmp_data_size);
+        if (new) heap_list_free(new, tmp_data_size);
         return NULL;
     }
 
     // initialize heap list B
-    for (int i = 0; i < data.size; i++) {
+    for (int i = 0; i < tmp_data_size; i++) {
         // sample 
         for (int j = 0; j < k;) {
-            node_t t = {(int)rand() % data.size, FLT_MAX, true};
+            node_t t = {(int)rand() % tmp_data_size, FLT_MAX, true};
             t.new = true;
             if (heap_insert(&B[i], &t) == 1) j++;
         }
     }
 
     int c; // number of updates in this iteration
-    int stop_iter = delta * data.size * k; // terminate if less than this many changes made
-    int max_candidates = 50;
+    const int stop_iter = delta * tmp_data_size * k; // terminate if less than this many changes made
+    const int max_candidates = 50;
     do {
-        heap_list_free(old, data.size);
-        heap_list_free(new, data.size);
-        old = heap_list_create(data.size, max_candidates);
-        new = heap_list_create(data.size, max_candidates);
+        heap_list_free(old, tmp_data_size);
+        heap_list_free(new, tmp_data_size);
+        old = heap_list_create(tmp_data_size, max_candidates);
+        new = heap_list_create(tmp_data_size, max_candidates);
 
-        sample_reverse_union(new, old, B, max_candidates, data.size);
+        sample_reverse_union(new, old, B, max_candidates, tmp_data_size);
 
         c = 0;
-        for (int v = 0; v < data.size; v++) {
+        for (int v = 0; v < tmp_data_size; v++) {
             for (int i = 0; i < new[v].size; i++) {
                 for (int k=0; k<2; k++) {
                     vec_t* heap_list = (k==0) ? new : old;
 
-                    for (int j = 0; j < heap_list[v].size; j++) {
+                    // Scalar replacement
+                    int tmp_v_size = heap_list[v].size;
+
+                    for (int j = 0; j < tmp_v_size; j++) {
                         if (i == j) continue;
 
                         node_t u1, u2;
@@ -141,7 +149,7 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, fl
                         if (u1.id <= u2.id) continue; //|| heap_find_by_index(&old[v], u2.id) == -1) continue;
                         // smh never get here...
 
-                        float l = metric(data.values[u1.id], data.values[u2.id], data.dim);
+                        const float l = metric(data.values[u1.id], data.values[u2.id], tmp_data_dim);
 
                         u1.val = u2.val = l;
                         u1.new = u2.new = true;
@@ -156,14 +164,14 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, fl
     printf("NNDescent finished \n");
     //printf("done, cleaning up...\n");
 
-    heap_list_free(old, data.size);
-    heap_list_free(new, data.size);
+    heap_list_free(old, tmp_data_size);
+    heap_list_free(new, tmp_data_size);
 
     return B;
 }
 
 // inserts given node while keeping the number of elements in heap <= max_neighbors
-int heap_insert_bounded(vec_t* h, node_t* node, int max_neighbors)
+int heap_insert_bounded(vec_t* h, node_t* node, const int max_neighbors)
 {
     if (h->size<max_neighbors) {
         return heap_insert(h, node);
@@ -179,7 +187,7 @@ int heap_insert_bounded(vec_t* h, node_t* node, int max_neighbors)
 
 }
 
-int sample_reverse_union(vec_t* new, vec_t* old, vec_t* B, int max_candidates, int N) {
+int sample_reverse_union(vec_t* new, vec_t* old, vec_t* B, const int max_candidates, const int N) {
     // this function samples, reverses and does the union all at once
     for (int i=0; i<N; i++) {
         vec_t heap = B[i];

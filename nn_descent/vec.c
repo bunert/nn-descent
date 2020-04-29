@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-int vec_create(vec_t* v, int capacity)
+int vec_create(vec_t* v, const int capacity)
 {
     if (capacity == 0) return 0;
 
@@ -50,8 +50,12 @@ int heap_insert(vec_t* h, node_t* node)
 
     // add new node, then bubble up
     h->arr[h->size] = *node;
-    if (h->size != 0) {
-        int n = h->size;
+
+    // Scalar replacement
+    int tmp_size = h->size;
+
+    if (tmp_size != 0) {
+        int n = tmp_size;
         int p = (n-1)/2;
         node_t t;
         while (p >= 0 && h->arr[p].val < h->arr[n].val) {
@@ -76,9 +80,13 @@ int heap_union(vec_t* h1, vec_t* h2)
     return 1;
 }
 
-int heap_find_by_index(vec_t* h, int index)
+int heap_find_by_index(vec_t* h, const int index)
 {
-    for (int i = 0; i < h->size; i++) {
+
+    // Scalar replacment
+    int tmp_size = h->size;
+
+    for (int i = 0; i < tmp_size; i++) {
         if (h->arr[i].id == index) return i;
     }
     return -1;
