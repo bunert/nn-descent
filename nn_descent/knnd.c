@@ -131,13 +131,16 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), const int
         sample_reverse_union(new, old, B, max_candidates, tmp_data_size);
 
         c = 0;
-        for (int v = 0; v < tmp_data_size; v++) {
+
+        // 2x loop unrolling for v
+        for (int v = 0; v < tmp_data_size-1; v += 2) {
+
+            // Scalar replacement
+            vec_t* heap_list0 = new;
+            vec_t* heap_list1 = old;
+
+            // for loop for v=i
             for (int i = 0; i < new[v].size; i++) {
-
-                // Loop unrolling of k=0/k=1
-
-                vec_t* heap_list0 = new;
-                vec_t* heap_list1 = old;
 
                 // Scalar replacement
                 const int tmp_v_size0 = heap_list0[v].size;
@@ -169,6 +172,53 @@ vec_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), const int
                     node_t u1, u2;
                     u1.id = new[v].arr[i].id;
                     u2.id = heap_list1[v].arr[j].id;
+
+                    if (u1.id <= u2.id) continue; //|| heap_find_by_index(&old[v], u2.id) == -1) continue;
+                    // smh never get here...
+
+                    const float l = metric(data.values[u1.id], data.values[u2.id], tmp_data_dim);
+
+                    u1.val = u2.val = l;
+                    u1.new = u2.new = true;
+                    c += nn_update(&B[u1.id], &u2);
+                    c += nn_update(&B[u2.id], &u1);
+                }
+            }
+
+            // for loop for v=i+1
+            for (int i = 0; i < new[(v+1)].size; i++) {
+
+                // Loop unrolling of k=0/k=1
+                // Scalar replacement
+                const int tmp_v_size0 = heap_list0[(v + 1)].size;
+                const int tmp_v_size1 = heap_list1[(v + 1)].size;
+
+                // for loop for k=0
+                for (int j = 0; j < tmp_v_size0; j++) {
+                    if (i == j) continue;
+
+                    node_t u1, u2;
+                    u1.id = new[(v + 1)].arr[i].id;
+                    u2.id = heap_list0[(v + 1)].arr[j].id;
+
+                    if (u1.id <= u2.id) continue; //|| heap_find_by_index(&old[v], u2.id) == -1) continue;
+                    // smh never get here...
+
+                    const float l = metric(data.values[u1.id], data.values[u2.id], tmp_data_dim);
+
+                    u1.val = u2.val = l;
+                    u1.new = u2.new = true;
+                    c += nn_update(&B[u1.id], &u2);
+                    c += nn_update(&B[u2.id], &u1);
+                }
+
+                // for loop for k=1
+                for (int j = 0; j < tmp_v_size1; j++) {
+                    if (i == j) continue;
+
+                    node_t u1, u2;
+                    u1.id = new[(v + 1)].arr[i].id;
+                    u2.id = heap_list1[(v + 1)].arr[j].id;
 
                     if (u1.id <= u2.id) continue; //|| heap_find_by_index(&old[v], u2.id) == -1) continue;
                     // smh never get here...
