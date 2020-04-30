@@ -90,9 +90,6 @@ def c_nearest_neighbors(directory, dataset, K, metric, repetition):
 
 def py_nearest_neighbors(dataset, K, metric, repetition):
     # (try) to enforce pynndescent using only a single thread:
-    env_list = ['MKL_NUM_THREADS', 'OMP_NUM_THREADS']
-    for e in env_list:
-        os.putenv(e, '1')
 
     # a point is his own NN
     # thats why we query K+1 and remove afterwards
@@ -113,10 +110,6 @@ def py_nearest_neighbors(dataset, K, metric, repetition):
         nn_arr = index._neighbor_graph[0]
         assert((nn_arr[:,0] == np.array(range(dataset.N))).all())
         nn_list.append(NearestNeighbors(nn_arr[:,1:], metric))
-
-    # restore env variables
-    for e in env_list:
-        os.unsetenv(e)
 
     # skip first repetition, since JIT does a lot of work then...
     return nn_list[1:], Timingdata(None, runtime[1:], "pynndescent")
