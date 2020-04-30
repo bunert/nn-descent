@@ -4,3 +4,6 @@ __pycache__
 pip-env
 .vscode
 a.out
+/output
+/data
+/.vs
