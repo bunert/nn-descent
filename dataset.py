@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 class Dataset:
     def __init__(self,X):
@@ -55,3 +56,25 @@ class AudioDataset(Dataset):
 
 
         Dataset.__init__(self, X)
+
+class MnistDataset(Dataset):
+
+    # Default MNIST Dataset 70k handwritten digits (784 dimensional)
+
+    def __init__(self):
+        train = 'mnist_train.csv' # 60k
+        test = 'mnist_test.csv' # 10k
+
+        train_df = pd.read_csv(train, header=None)
+        test_df = pd.read_csv(test, header=None)
+
+        complete_df = pd.concat([train_df, test_df], axis = 0)
+
+        self.X = complete_df.iloc[:,1:].to_numpy(dtype='float32')
+        self.N = complete_df.shape[0] # 70,000
+        self.D = complete_df.shape[1] - 1 # 784
+
+
+
+
+

@@ -1,7 +1,7 @@
 import numpy as np
 import sklearn.neighbors
 import subprocess
-from dataset import GaussianDataset, AudioDataset
+from dataset import GaussianDataset, AudioDataset, MnistDataset
 from nearestneighbors import c_nearest_neighbors, py_nearest_neighbors, nearest_neighbors
 from pathlib import Path
 import urllib.request
@@ -32,6 +32,16 @@ elif args.dataset == 'audio':
         print("audio.data not here, downloading...")
         urllib.request.urlretrieve ("http://kluser.ch/audio.data", "audio.data")
     dataset = AudioDataset()
+elif args.dataset == 'mnist' or args.dataset == 'digits':
+    # MNIST dataset of 70k handwritten digits (784 dimensional)
+
+    mnist_filenames = ["mnist_train.csv","mnist_test.csv"]
+
+    for csv_file in mnist_filenames:
+        if not Path(csv_file).is_file():
+            print("downloading " + csv_file)
+            urllib.request.urlretrieve("https://pjreddie.com/media/files/" + csv_file, csv_file)
+    dataset = MnistDataset()
 else:
     print("dataset not supported")
     exit(1)

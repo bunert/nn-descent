@@ -1,3 +1,4 @@
 sklearn
 numpy
 pynndescent
+pandas>=1.0.3
