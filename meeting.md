@@ -1,3 +1,20 @@
+# Week 4
+## Discussion
+- Use collaborative tools for slides/latex
+- Meeting questions:
+   - Do we need to enlarge our project? e.g optimize Brute Force KNN or extend our existing algorithm (UMap)
+   - What does count to flops because we don't have comparisons accounted
+- Random number generator: a bit shady, but recall and performance is the same (1 mult and 1 modulo)
+- Bottleneck: Memory
+- Random number generator: We only have a 32 bit integer --> limited in the number of points
+- Possible improvements: Vectorize Heap, blocking and sampling
+
+## Tasks
+- Sam: Create slides for project meeting
+- Tobi: Update Project Systems
+- Dan: Benchmark our starting point (nn_descent) implementation and MNIST Dataset
+- Jonas: Max heapify eliminate recursion
+
 # Week 3
 ## Discussion
 - Git Tag for different versions
@@ -31,7 +48,7 @@
 
 - Validation
     - script to automate test(s)
-    - end to end recall test
+    - end to end recall test 
     - run all unit tests
     - define correctness (same as in original paper, recall)
 
