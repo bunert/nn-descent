@@ -12,7 +12,7 @@
 #define NUM_RUNS 1
 #define CYCLES_REQUIRED 1e8
 //TODO adapt frequency!
-#define FREQUENCY 2.7e9
+#define FREQUENCY 1.4e9
 // #define CALIBRATE
 
 char * const nulFileName = "/dev/null";
@@ -29,16 +29,16 @@ float l2(float* v1, float* v2, int d)
     return sqrt(acc);
 }
 
-void heap_check(vec_t* h, int i)
+void heap_check(heap_t* h, int i)
 {
     int l = i*2 + 1, r = i*2 + 2;
-    if (l < h->_capacity) {
-        assert(h->arr[i].val >= h->arr[l].val);
+    if (l < h->size) {
+        assert(h->vals[i] >= h->vals[l]);
         heap_check(h, l);
     }
 
-    if (r < h->_capacity) {
-        assert(h->arr[i].val >= h->arr[r].val);
+    if (r < h->size) {
+        assert(h->vals[i] >= h->vals[r]);
         heap_check(h, r);
     }
 }
@@ -64,12 +64,12 @@ void read_data(char* filename, int N, int D, dataset_t* data) {
     }
 }
 
-void write_data(char* filename, int N, vec_t* result) {
+void write_data(char* filename, int N, heap_t* result) {
     FILE *fp;
     if ((fp = fopen(filename, "w")) != NULL) {
         for (int i=0; i<N; i++) {
             for (int j=0; j<result[i].size; j++) {
-                fprintf(fp, "%d", result[i].arr[j].id);
+                fprintf(fp, "%d", result[i].ids[j]);
                 if (j!=result[i].size-1)
                     fputs(" ", fp);
             }
@@ -81,12 +81,12 @@ void write_data(char* filename, int N, vec_t* result) {
     }
 }
 
-vec_t* rdtsc(double *c, dataset_t data, float(*metric)(float*, float*, int), int k, float rho, float delta) {
+heap_t* rdtsc(double *c, dataset_t data, float(*metric)(float*, float*, int), int k, float rho, float delta) {
     int i, num_runs;
     myInt64 cycles;
     myInt64 start;
     num_runs = NUM_RUNS;
-    vec_t* B;
+    heap_t* B;
 
     // for stdout surpression
     int stdoutBackupFd;
@@ -135,11 +135,11 @@ vec_t* rdtsc(double *c, dataset_t data, float(*metric)(float*, float*, int), int
     return B;
 }
 
-vec_t* c_clock(double* c, dataset_t data, float(*metric)(float*, float*, int), int k, float rho, float delta) {
+heap_t* c_clock(double* c, dataset_t data, float(*metric)(float*, float*, int), int k, float rho, float delta) {
     int i, num_runs;
     double cycles;
     clock_t start, end;
-    vec_t* B;
+    heap_t* B;
 
     num_runs = NUM_RUNS;
 
@@ -171,11 +171,11 @@ vec_t* c_clock(double* c, dataset_t data, float(*metric)(float*, float*, int), i
 }
 
 
-vec_t* timeofday(double* c, dataset_t data, float(*metric)(float*, float*, int), int k, float rho, float delta) {
+heap_t* timeofday(double* c, dataset_t data, float(*metric)(float*, float*, int), int k, float rho, float delta) {
     int i, num_runs;
     double cycles;
     struct timeval start, end;
-    vec_t* B;
+    heap_t* B;
 
     num_runs = NUM_RUNS;
 
@@ -222,7 +222,7 @@ int main(int argc, char *argv[])
 
     double *c = malloc(sizeof(double));
 
-    vec_t* B;
+    heap_t* B;
 
     // 3 timing methods, use the first one as long as no overflow appears
 

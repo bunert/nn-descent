@@ -59,9 +59,13 @@ def nearest_neighbors(dataset, K, metric):
 
 # performs reference knndescent on dataset
 # returns nearestneighbors and timing
-def c_nearest_neighbors(directory, dataset, K, metric, repetition):
+def c_nearest_neighbors(directory, dataset, K, metric, repetition, gprof_compile=False):
     # calls reference implementation for NN
 
+    if gprof_compile:
+        process = subprocess.run(['gcc','knnd.c','knnd_test.c', 'vec.c', '-lm', '-O3', '-ffast-math', '-march=native', '-pg'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
+    else:
+        process = subprocess.run(['gcc','knnd.c','knnd_test.c', 'vec.c', '-lm', '-O3', '-ffast-math', '-march=native'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
 
     if metric != 'l2':
         raise ValueError(metric + ' not implemented')
@@ -113,4 +117,3 @@ def py_nearest_neighbors(dataset, K, metric, repetition):
 
     # skip first repetition, since JIT does a lot of work then...
     return nn_list[1:], Timingdata(None, runtime[1:], "pynndescent")
-
