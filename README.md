@@ -35,3 +35,22 @@ To do so you can follow these steps:
 2. activate the environment `source pip-env/bin/activate`
 3. install the requirements listed in requirements.txt
     `pip install -r requirements.txt`
+
+## How-To: Benchmark
+Obtain code of nn_descent of in the version you wish to benchmark. Usually this means cloning into a new directory and resetting as follows:
+```
+git clone ... 
+cd copy_of_project
+git reset --hard T0
+```
+Don't forget to adjust the frequency constant in the C code.
+
+Run 
+```
+python benchmark.py -p ../copy_of_project/nn_descent
+```
+
+which will generate a tab separated file in directory benchmarks. Make sure to add an identifier of your architectures to files you wish to push to the repistory.
+
+### Plotting
+You may find examples of plots in eval_zenv1.ipynb

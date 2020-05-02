@@ -1,5 +1,35 @@
 import numpy as np
+from pathlib import Path
+import urllib.request
 import pandas as pd
+
+def get_dataset(data_name, n, dim):
+    if data_name == 'gaussian':
+        # 200 datapoints sampled from each of 10 gaussians centered around canonical basis vector
+        n = 1000 if n is None else n
+        return GaussianDataset(dimension=dim, variance=2.0, n=n)
+    elif data_name == 'audio':
+        # Audio dataset as described in the NN-Descent publication
+        #  54,387 points (192 dimensional)
+        my_file = Path("audio.data")
+        if not my_file.is_file():
+            print("audio.data not here, downloading...")
+            urllib.request.urlretrieve ("http://kluser.ch/audio.data", "audio.data")
+        return AudioDataset(n)
+    elif args.dataset == 'mnist' or args.dataset == 'digits':
+        # MNIST dataset of 70k handwritten digits (784 dimensional)
+    
+        mnist_filenames = ["mnist_train.csv","mnist_test.csv"]
+    
+        for csv_file in mnist_filenames:
+            if not Path(csv_file).is_file():
+                print("downloading " + csv_file)
+                urllib.request.urlretrieve("https://pjreddie.com/media/files/" + csv_file, csv_file)
+        dataset = MnistDataset()
+    else:
+        print("dataset not supported")
+        exit(1)
+
 
 class Dataset:
     def __init__(self,X):
@@ -13,23 +43,24 @@ class Dataset:
 
 class GaussianDataset(Dataset):
     def __init__(self, dimension, variance, n):
-        # generate n points from each of dimension many sperical gaussians
+        # generate n//dimension points from each of dimension many sperical gaussians
         # the gaussians are each centered around a canonical basisvector
-        # n*dimension many points in total
+        # n//dimension*dimension many points in total
 
         cov = variance * np.identity(dimension)
         X = []
         for i in range(dimension):
             mean = np.zeros(dimension)
             mean[i] = 1.0
-            X.append(np.random.multivariate_normal(mean, cov, n))
+            X.append(np.random.multivariate_normal(mean, cov, n//dimension))
         X = np.vstack(X)
+        np.random.shuffle(X)
         Dataset.__init__(self, X)
 
 class AudioDataset(Dataset):
 
     # Audio dataset as described in the publicaiton. 54,387 points (192 dimensional)
-    def __init__(self):
+    def __init__(self, n=0):
         path = 'audio.data'
         # read data as specified here
         # http://lshkit.sourceforge.net/dc/d46/matrix_8h.html
@@ -42,9 +73,14 @@ class AudioDataset(Dataset):
             dim_elem_size = read_uint(f.read(4))
 
             # reads all 4-byte floats into flat array of dimension size*dim_elem_size
-            X = np.frombuffer(np.array(f.read(4*size*dim_elem_size)), dtype=np.float32)
+            X = np.frombuffer(np.array(f.read(4*size*dim_elem_size)), dtype=np.float32);
 
             X = X.reshape((size,dim_elem_size))
+
+            # take not the whole dataset
+            if (n!=0):
+                X = X[:n,:]
+
             self.X = X
 
 #            X = np.zeros((size,dim_elem_size))

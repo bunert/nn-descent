@@ -1,8 +1,4 @@
 import numpy as np
-import subprocess
-import sklearn
-import os
-from dataset import GaussianDataset, AudioDataset
 
 class Timingdata:
     def __init__(self,c, t, method):
@@ -46,8 +42,3 @@ def parse_output(txt):
     c = float(txt[1].split()[0])
     t = float(txt[2].split()[0])
     return c,t
-
-
-
-
-
