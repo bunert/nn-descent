@@ -1,4 +1,20 @@
-# Week 4
+# Week 6
+## Project meeting
+- Find k that it becomes compute bound
+- Is the dimension dependent on the performance?
+- Try out dataset, where the neighbouring datapoints are somehow in order (with Gaussian noise) -> Prior on data distribution
+- Use brute force algorithm to improve performance
+- Project presentation
+   - 10 Min in total
+   - 2 min introduction (2 slides)
+   - Say, what is the main bottleneck
+   - Discuss optimization techniques that are not straight forward
+   - 3-4 slides: Baseline, Roofline plot, Plots
+   - Backup slides
+   - Present both approaches (Random/Brute force), focus on things, that are novel and not straight forward
+   - Explain, why we get that speedup or why we don't
+   - 
+# Week 5
 ## Discussion
 - Use collaborative tools for slides/latex
 - Meeting questions:
