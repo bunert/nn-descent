@@ -13,7 +13,7 @@
    - Backup slides
    - Present both approaches (Random/Brute force), focus on things, that are novel and not straight forward
    - Explain, why we get that speedup or why we don't
-   - 
+
 # Week 5
 ## Discussion
 - Use collaborative tools for slides/latex
