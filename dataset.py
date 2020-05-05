@@ -5,7 +5,7 @@ import pandas as pd
 
 def get_dataset(data_name, n, dim):
     if data_name == 'gaussian':
-        # 200 datapoints sampled from each of 10 gaussians centered around canonical basis vector
+        # n datapoints sampled from each of dim gaussians centered around canonical basis vector with dimension dim
         n = 1000 if n is None else n
         return GaussianDataset(dimension=dim, variance=2.0, n=n)
     elif data_name == 'audio':

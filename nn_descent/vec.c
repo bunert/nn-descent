@@ -52,9 +52,14 @@ void max_heapify(heap_t* h, int i)
     int l = (i*2)+1, r = (i*2)+2, max;
     max = (l < h->size && h->vals[l] > h->vals[i]) ? l : i;
     max = (r < h->size && h->vals[r] > h->vals[max]) ? r : max;
-    if (max != i) { //one of children is larger -> swap
+    while (max != i) { //one of children is larger -> swap
         swap(i,max); // macro that swaps the two nodes by swapping the values in each of the 3 arrays
-        max_heapify(h, max);
+
+        i = max;
+
+        int l = (i * 2) + 1, r = (i * 2) + 2;
+        max = (l < h->size&& h->vals[l] > h->vals[i]) ? l : i;
+        max = (r < h->size&& h->vals[r] > h->vals[max]) ? r : max;
     }
 }
 
