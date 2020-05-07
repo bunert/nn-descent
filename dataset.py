@@ -16,7 +16,7 @@ def get_dataset(data_name, n, dim):
             print("audio.data not here, downloading...")
             urllib.request.urlretrieve ("http://kluser.ch/audio.data", "audio.data")
         return AudioDataset(n)
-    elif args.dataset == 'mnist' or args.dataset == 'digits':
+    elif data_name == 'mnist' or data_name == 'digits':
         # MNIST dataset of 70k handwritten digits (784 dimensional)
     
         mnist_filenames = ["mnist_train.csv","mnist_test.csv"]
@@ -25,7 +25,7 @@ def get_dataset(data_name, n, dim):
             if not Path(csv_file).is_file():
                 print("downloading " + csv_file)
                 urllib.request.urlretrieve("https://pjreddie.com/media/files/" + csv_file, csv_file)
-        dataset = MnistDataset()
+        return MnistDataset()
     else:
         print("dataset not supported")
         exit(1)
