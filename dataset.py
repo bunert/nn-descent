@@ -17,7 +17,7 @@ def get_dataset(data_name, n, dim):
             print("audio.data not here, downloading...")
             urllib.request.urlretrieve ("http://kluser.ch/audio.data", "audio.data")
         return AudioDataset(n)
-    elif args.dataset == 'mnist' or args.dataset == 'digits' or args.dataset == 'sorted_mnist':
+    elif data_name == 'mnist' or data_name == 'digits' or data_name == 'sorted_mnist':
         # MNIST dataset of 70k handwritten digits (784 dimensional)
     
         mnist_filenames = ["mnist_train.csv","mnist_test.csv"]
@@ -27,10 +27,10 @@ def get_dataset(data_name, n, dim):
                 print("downloading " + csv_file)
                 urllib.request.urlretrieve("https://pjreddie.com/media/files/" + csv_file, csv_file)
 
-        if args.dataset == 'mnist' or args.dataset == 'digits':
-            dataset = MnistDataset()
-        elif args.dataset == 'sorted_mnist':
-            dataset = MnistSortedDataset()
+        if data_name == 'mnist' or data_name == 'digits':
+            return MnistDataset()
+        elif data_name == 'sorted_mnist':
+            return MnistSortedDataset()
         else:
             #cannot occur
             print('error: dataset not implemented')
