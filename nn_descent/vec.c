@@ -72,12 +72,12 @@ int heap_insert_bounded(heap_t* h, uint32_t id, float dist, bool isnew, int max_
         if (heap_find_by_index(h, id) >= 0)
             return 0;
         float curr_max = h->vals[0];
-        if (dist > curr_max) {
+        if (dist < curr_max) {
             h->vals[0] = dist;
             h->isnews[0] = isnew;
-            h->ids[0] = id; 
+            h->ids[0] = id;
         }
-        max_heapify(h, 0); 
+        max_heapify(h, 0);
         return 1;
     }
 
