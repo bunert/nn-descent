@@ -207,6 +207,7 @@ heap_t* timeofday(double* c, dataset_t data, float(*metric)(float*, float*, int)
 
 int main(int argc, char *argv[])
 {
+    srand(time(NULL));
     if (argc != 6) {
         printf("Usage: <inputfilename> <outputfilename> N D K");
         return 0;

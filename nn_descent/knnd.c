@@ -39,27 +39,7 @@ void heap_list_free(heap_t* hl, int size)
     free(hl);
 }
 
-int sum(heap_t* B, int N) {
-    int sum=0;
-    // this function samples, reverses and does the union all at once
-    for (int i=0; i<N; i++) {
-// printf("i: %d, sum: %d\n", i, (B[i].fwd_new + B[i].fwd_old));
-        // assert(B[i].fwd_new + B[i].fwd_old == 20);
-        sum += B[i].fwd_new + B[i].fwd_old + B[i].rev_new + B[i].rev_old;
 
-        /*for (int j=0; j<heap.size; j++) {
-            
-            // here we insert connections using some random weight in [0,1]
-            // this corresponds to using the max_candidates-many neighbors with
-            // the lowest (random) weight, which should be equivalent to sampling
-            // max_candidates-many entries u.a.r. from the neighors of each node
-            bool isnew = heap.isnews[j]; 
-            uint32_t v = heap.ids[j];
-            heap_t heap_v = B[v];
-        }*/
-    }
-    return sum;
-}
 
 
 int nn_update(heap_t* B, heap_t* h, uint32_t id, float dist)
@@ -69,21 +49,21 @@ int nn_update(heap_t* B, heap_t* h, uint32_t id, float dist)
     if (dist >= h->vals[0] || heap_find_by_index(h, id) >= 0) return 0;
 
     heap_t *R = &B[h->ids[0]];
-    if (h->ids[0] != id) {
-        if (h->isnews[0]) {
+    if (h->isnews[0]) {
+        // if old max element in heap was already flagged new, the outward new count on h stays the same
+        // we need to remove the incoming (reverse) new count on the element R it was previously pointing to
+        // and increase it on B[id] where it is now pointing
+        R->rev_new--;
+        B[id].rev_new++;
+    } else {
+        // to be replaced is not new
+        R->rev_old--;    
+        B[id].rev_new++;
 
-            R->rev_new--;
-            B[id].rev_new++;
-        } else {
-            // to be replaced is not new
-            R->rev_old--;    
-            B[id].rev_new++;
-
-            // replacing forward old with
-            // forward new
-            h->fwd_old--;
-            h->fwd_new++;
-        }
+        // replacing forward old with
+        // forward new
+        h->fwd_old--;
+        h->fwd_new++;
     }
 
 
@@ -135,8 +115,6 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
             }
         }
     }
-    //printf("sum: %d, expected: %d\n", sum(B, data.size),data.size*20*2);
-    // assert(sum(B, data.size)==(int)data.size*20*2);
 
     int c; // number of updates in this iteration
     int stop_iter = delta * data.size * k; // terminate if less than this many changes made
@@ -150,31 +128,6 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
         c = 0;
         for (int v = 0; v < data.size; v++) {
             for (int i = 0; i < new[v].size; i++) {
-
-                uint32_t u = new[v].ids[i];
-
-                int index = heap_find_by_index(&B[u], v);
-                if (index >= 0) {
-                    B[u].isnews[index] = false;
-                    B[u].fwd_new--;
-                    B[u].fwd_old++;
-
-                    B[v].rev_new--;
-                    B[v].rev_old++;
-                }
-
-                index = heap_find_by_index(&B[v], u);
-                if (index >= 0) {
-                    B[v].isnews[index] = false;
-                    B[v].fwd_new--;
-                    B[v].fwd_old++;
-
-                    B[u].rev_new--;
-                    B[u].rev_old++;
-                }
-    // printf("sum: %d, expected: %d\n", sum(B, data.size),data.size*20*2);
-    // assert(sum(B, data.size)==data.size*20*2);
-
                 for (int k=0; k<2; k++) {
                     heap_t* heap_list = (k==0) ? new : old;
 
@@ -189,19 +142,18 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
                         float l = metric(data.values[u1_id], data.values[u2_id], data.dim);
 
-    // printf("sum: %d, expected: %d\n", sum(B, data.size),data.size*20*2);
-    // assert(sum(B, data.size)==data.size*20*2);
                         c += nn_update(B, &B[u1_id], u2_id, l);
                         c += nn_update(B, &B[u2_id], u1_id, l);
-    // printf("sum: %d, expected: %d\n", sum(B, data.size),data.size*20*2);
-    // assert(sum(B, data.size)==data.size*20*2);
                     }
                 }    
             }
         }
        // printf("iteration complete: %d / %d\n", c, stop_iter);
     } while (c >= stop_iter);
+    // assert(validate_connection_counters(B, data.size)==data.size*k*2);
+
     printf("NNDescent finished \n");
+
     //printf("done, cleaning up...\n");
 
     heap_list_free(old, data.size);
@@ -210,37 +162,120 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     return B;
 }
 
+void heap_push_bounded(heap_t* h, uint32_t id, int max_candidates) {
+    // here we regard the heap_t as a simple list of ids
+    // bounded by max_candidates
+    if (h->size==max_candidates)
+        return;
+    h->ids[h->size] = id;
+    h->size++;
+}
 
 int sample_reverse_union(heap_t* new, heap_t* old, heap_t* B, int max_candidates, int N) {
     // this function samples, reverses and does the union all at once
+    
     for (int i=0; i<N; i++) {
         heap_t heap = B[i];
         int u = i;
 
         for (int j=0; j<heap.size; j++) {
-            // here we insert connections using some random weight in [0,1]
-            // this corresponds to using the max_candidates-many neighbors with
-            // the lowest (random) weight, which should be equivalent to sampling
-            // max_candidates-many entries u.a.r. from the neighors of each node
             bool isnew = heap.isnews[j]; 
             uint32_t v = heap.ids[j];
             heap_t heap_v = B[v];
 
-            float rand_weight = rand()/(float)RAND_MAX;
-
             // depending on flag select new or old heaplist
             heap_t* heap_list = (isnew) ? new : old;
-            float pr_u = (isnew) ? (float)2*max_candidates/(heap.fwd_new + heap.rev_new) :  (float) 2*max_candidates/(heap.fwd_old + heap.rev_old);
-            float pr_v = (isnew) ? (float)2*max_candidates/(heap_v.fwd_new + heap_v.rev_new) :  (float)2*max_candidates/(heap_v.fwd_old + heap_v.rev_old);
- 
-            if (pr_u > rand_weight)
-                heap_insert_bounded(&heap_list[u], v, rand_weight, isnew, max_candidates);
 
-            if (pr_v > rand_weight)
-                heap_insert_bounded(&heap_list[v], u, rand_weight, isnew, max_candidates);
-                // reverse connection (add to B[v] if rand_weight amongst the K smallest...)
+            // pr_u is the number of elements we can sample from for heap_list[u]
+            // same story for v
+            int pr_u = (isnew) ? (heap.fwd_new + heap.rev_new) :  (heap.fwd_old + heap.rev_old);
+            int pr_v = (isnew) ? (heap_v.fwd_new + heap_v.rev_new) :  (heap_v.fwd_old + heap_v.rev_old);
+ 
+            
+            // corresponds to sampling with pr max_candidates/pr_u
+            if (rand() % pr_u < max_candidates) {
+                heap_push_bounded(&heap_list[u], v, max_candidates);
+
+                // if we sampled a new connection
+                // we can now
+                // 1. change the flag
+                // 2. update our counters
+                if (isnew) {
+                    B[u].isnews[j] = false;
+                    // by flagging B[u][v] = false
+                    // we have one fewer flagged u -> v
+                    // and one more not-flagged u->v
+                    B[u].fwd_new--;
+                    B[u].fwd_old++;
+
+                    // by flagging B[u][v] = false
+                    // we have one fewer flagged v -> u
+                    // and one more not-flagged v->u
+                    B[v].rev_new--;
+                    B[v].rev_old++; 
+                }
+            }
+
+            if (rand() % pr_v < max_candidates) {
+                heap_push_bounded(&heap_list[v], u, max_candidates);
+
+                int index = heap_find_by_index(&B[v], u);
+                if (index >= 0 && B[v].isnews[index]) {
+                    // same story with the flags as above
+                    B[v].isnews[index] = false;
+                    B[v].fwd_new--;
+                    B[v].fwd_old++;
+
+                    B[u].rev_new--;
+                    B[u].rev_old++;
+                }
+            }
         }
     }
     return 0;
 }
 
+int validate_connection_counters(heap_t* B, int N) {
+    // this checks whether all the counters are what they're supposed to be
+    // obviously this is for testing and shouldnt be executed in "production" code
+    int sum=0;
+    int *rev_old = calloc(N,sizeof(int));
+    int *rev_new = calloc(N,sizeof(int));
+    int *fwd_new = calloc(N,sizeof(int));
+    int *fwd_old = calloc(N,sizeof(int));
+
+    // this function samples, reverses and does the union all at once
+    for (int i=0; i<N; i++) {
+        heap_t heap = B[i];
+        int u = i;
+// printf("i: %d, sum: %d\n", i, (B[i].fwd_new + B[i].fwd_old));
+        // assert(B[i].fwd_new + B[i].fwd_old == 20);
+        sum += B[i].fwd_new + B[i].fwd_old + B[i].rev_new + B[i].rev_old;
+
+
+        for (int j=0; j<heap.size; j++) {
+            bool isnew = heap.isnews[j]; 
+            uint32_t v = heap.ids[j];
+            if (isnew) {
+                fwd_new[i]++;
+                rev_new[v]++;
+            } else {
+                fwd_old[i]++;
+                rev_old[v]++;
+            }
+        }
+    }
+    for (int i=0; i<N; i++) {
+        heap_t heap = B[i];
+        int u = i;
+        assert(rev_old[i] == heap.rev_old);
+        assert(rev_new[i] == heap.rev_new);
+        assert(fwd_new[i] == heap.fwd_new);
+        assert(fwd_old[i] == heap.fwd_old);
+    }
+    free(rev_old);
+    free(rev_new);
+    free(fwd_old);
+    free(fwd_new);
+    return sum;
+}
