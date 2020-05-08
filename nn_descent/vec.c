@@ -29,6 +29,10 @@ int heap_create(heap_t* h, int capacity)
     h->ids = malloc(sizeof(uint32_t) * capacity);
     h->vals = malloc(sizeof(float) * capacity);
     h->isnews = malloc(sizeof(bool) * capacity);
+    h->rev_old = 0;
+    h->rev_new = 0;
+    h->fwd_old = 0;
+    h->fwd_new = 0;
     if (!h->ids || !h->vals || !h->isnews)
         return 0;
 

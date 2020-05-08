@@ -14,6 +14,10 @@ typedef struct {
     uint32_t *ids; 
     float *vals;
     bool *isnews;
+    int rev_new;
+    int rev_old;
+    int fwd_new;
+    int fwd_old;
 } heap_t;
 
 int heap_create(heap_t*, int);
