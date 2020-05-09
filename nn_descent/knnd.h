@@ -14,7 +14,7 @@ int make_test_data(dataset_t*, int, int);
 heap_t* heap_list_create(int, int);
 void heap_list_free(heap_t*, int);
 heap_t* nn_descent(dataset_t, float(*)(float*, float*, int), int, float, float);
-int sample_reverse_union(heap_t* new, heap_t* old, heap_t* B, int k, int N);
+int sample_reverse_union(vec_t* new, vec_t* old, heap_t* B, int max_candidates, int N);
 int update_nn(heap_t*, int, float);
 int reverse_heap_list(heap_t*, heap_t*, int);
 int validate_connection_counters(heap_t* B, int N);

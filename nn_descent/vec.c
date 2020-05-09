@@ -39,6 +39,15 @@ int heap_create(heap_t* h, int capacity)
     return 1;
 }
 
+void vec_insert_bounded(vec_t* h, uint32_t id, int max_candidates) {
+    // here we regard the vec_t as a simple list of ids
+    // bounded by max_candidates
+    if (h->size==max_candidates)
+        return;
+    h->ids[h->size] = id;
+    h->size++;
+}
+
 // logically remove all elements from the heap
 void heap_clear(heap_t* v) { if (v) v->size = 0; }
 

@@ -8,6 +8,16 @@
 #include <stdbool.h>
 #include <assert.h>
 
+vec_t* vec_list_create(int size, int k)
+{
+    vec_t* vl = malloc(sizeof(vec_t) * size + sizeof(uint32_t) * k * size);
+    for (int i=0; i<size; i++) {
+        vl[i].size = 0;
+        vl[i].ids = (uint32_t*) ((size_t)vl + sizeof(vec_t)*size + i*sizeof(uint32_t)*k);
+    }
+    return vl;
+}
+
 heap_t* heap_list_create(int size, int k)
 {
     // create list of 'size' many max heaps
@@ -23,6 +33,12 @@ heap_t* heap_list_create(int size, int k)
     return hl;
 }
 
+void vec_list_clear(vec_t* hl, int size) {
+    // logically clears/empyies heap list
+    for (int i = 0; i < size; i++) {
+        hl[i].size = 0;
+    }
+}
 void heap_list_clear(heap_t* hl, int size) {
     // logically clears/empyies heap list
     for (int i = 0; i < size; i++) {
@@ -92,14 +108,14 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
     // create lists with the maxheaps for each datapoint
     heap_t* B     = heap_list_create(data.size, k);
-    heap_t* old   = heap_list_create(data.size, max_candidates);
-    heap_t* new   = heap_list_create(data.size, max_candidates);
+    vec_t* old   = vec_list_create(data.size, max_candidates);
+    vec_t* new   = vec_list_create(data.size, max_candidates);
 
     if (!B || !old || !new) {
         printf("error: failed to allocate one or more heap lists\n");
         if (B) heap_list_free(B, data.size);
-        if (old) heap_list_free(old, data.size);
-        if (new) heap_list_free(new, data.size);
+        if (old) free(old);
+        if (new) free(new);
         return NULL;
     }
 
@@ -120,8 +136,8 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     int stop_iter = delta * data.size * k; // terminate if less than this many changes made
 
     do {
-        heap_list_clear(old, data.size);
-        heap_list_clear(new, data.size);
+        vec_list_clear(old, data.size);
+        vec_list_clear(new, data.size);
 
         sample_reverse_union(new, old, B, max_candidates, data.size);
 
@@ -129,7 +145,7 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
         for (int v = 0; v < data.size; v++) {
             for (int i = 0; i < new[v].size; i++) {
                 for (int k=0; k<2; k++) {
-                    heap_t* heap_list = (k==0) ? new : old;
+                    vec_t* heap_list = (k==0) ? new : old;
 
                     for (int j = 0; j < heap_list[v].size; j++) {
                         if (i == j) continue;
@@ -156,22 +172,15 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
     //printf("done, cleaning up...\n");
 
-    heap_list_free(old, data.size);
-    heap_list_free(new, data.size);
+    free(old);
+    free(new);
 
     return B;
 }
 
-void heap_push_bounded(heap_t* h, uint32_t id, int max_candidates) {
-    // here we regard the heap_t as a simple list of ids
-    // bounded by max_candidates
-    if (h->size==max_candidates)
-        return;
-    h->ids[h->size] = id;
-    h->size++;
-}
 
-int sample_reverse_union(heap_t* new, heap_t* old, heap_t* B, int max_candidates, int N) {
+
+int sample_reverse_union(vec_t* new, vec_t* old, heap_t* B, int max_candidates, int N) {
     // this function samples, reverses and does the union all at once
     
     for (int i=0; i<N; i++) {
@@ -184,7 +193,7 @@ int sample_reverse_union(heap_t* new, heap_t* old, heap_t* B, int max_candidates
             heap_t heap_v = B[v];
 
             // depending on flag select new or old heaplist
-            heap_t* heap_list = (isnew) ? new : old;
+            vec_t* heap_list = (isnew) ? new : old;
 
             // pr_u is the number of elements we can sample from for heap_list[u]
             // same story for v
@@ -194,7 +203,7 @@ int sample_reverse_union(heap_t* new, heap_t* old, heap_t* B, int max_candidates
             
             // corresponds to sampling with pr max_candidates/pr_u
             if (rand() % pr_u < max_candidates) {
-                heap_push_bounded(&heap_list[u], v, max_candidates);
+                vec_insert_bounded(&heap_list[u], v, max_candidates);
 
                 // if we sampled a new connection
                 // we can now
@@ -217,7 +226,7 @@ int sample_reverse_union(heap_t* new, heap_t* old, heap_t* B, int max_candidates
             }
 
             if (rand() % pr_v < max_candidates) {
-                heap_push_bounded(&heap_list[v], u, max_candidates);
+                vec_insert_bounded(&heap_list[v], u, max_candidates);
 
                 int index = heap_find_by_index(&B[v], u);
                 if (index >= 0 && B[v].isnews[index]) {

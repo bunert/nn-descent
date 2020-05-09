@@ -20,6 +20,12 @@ typedef struct {
     int fwd_old;
 } heap_t;
 
+typedef struct {
+    int size;
+    uint32_t *ids;
+} vec_t;
+void vec_insert_bounded(vec_t* h, uint32_t id, int max_candidates);
+
 int heap_create(heap_t*, int);
 void heap_clear();
 void heap_free(heap_t*);
