@@ -59,7 +59,7 @@ def nearest_neighbors(dataset, K, metric):
 
 # performs reference knndescent on dataset
 # returns nearestneighbors and timing
-def c_nearest_neighbors(directory, dataset, K, metric, repetition, gprof_compile=False):
+def c_nearest_neighbors(directory, dataset, K, metric, repetition, stdout=False, gprof_compile=False):
     # calls reference implementation for NN
 
     if gprof_compile:
@@ -79,9 +79,9 @@ def c_nearest_neighbors(directory, dataset, K, metric, repetition, gprof_compile
 
     for i in range(repetition):
         process = subprocess.run([path,'data','output', str(dataset.N), str(dataset.D), str(K)], check=True, stdout=subprocess.PIPE, universal_newlines=True)
-        txt = process.stdout.splitlines()
+        if stdout: print(process.stdout)
 
-        c,t  = parse_output(txt)
+        c,t  = parse_output(process.stdout.splitlines())
         nn_data = NearestNeighbors(filename='output')
 
         cycles[i] = c
