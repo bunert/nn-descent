@@ -135,6 +135,13 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     int c; // number of updates in this iteration
     int stop_iter = delta * data.size * k; // terminate if less than this many changes made
 
+     typedef struct {
+         uint32_t u;
+         uint32_t v;
+         float dist;
+     } update_t;
+     update_t updates[8*16384];
+     int update_size=0;
     do {
         vec_list_clear(old, data.size);
         vec_list_clear(new, data.size);
@@ -157,13 +164,32 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
                         if (u1_id <= u2_id) continue;
 
                         float l = metric(data.values[u1_id], data.values[u2_id], data.dim);
+                        updates[update_size++] = (update_t) {u1_id, u2_id, l};
+                        
 
-                        c += nn_update(B, &B[u1_id], u2_id, l);
-                        c += nn_update(B, &B[u2_id], u1_id, l);
-                    }
-                }    
+                        // c += nn_update(B, &B[u1_id], u2_id, l);
+                        // c += nn_update(B, &B[u2_id], u1_id, l);
+                    } 
+                }
             }
+            // we will create at most m_c*m_c*2 updates in the next iteration
+            // if theres enough space we do not need to perform the updates yet
+            if (8*16384-update_size < max_candidates*max_candidates*2) {
+                for (int i=0; i<update_size; i++) {
+                    update_t upd = updates[i];
+                    c += nn_update(B, &B[upd.u], upd.v, upd.dist);
+                    c += nn_update(B, &B[upd.v], upd.u, upd.dist);
+                }
+                update_size=0;
+            }
+            // N * max_c * 2 * max_c
         }
+        for (int i=0; i<update_size; i++) {
+            update_t upd = updates[i];
+            c += nn_update(B, &B[upd.u], upd.v, upd.dist);
+            c += nn_update(B, &B[upd.v], upd.u, upd.dist);
+        }
+        update_size=0;
        // printf("iteration complete: %d / %d\n", c, stop_iter);
     } while (c >= stop_iter);
     // assert(validate_connection_counters(B, data.size)==data.size*k*2);
