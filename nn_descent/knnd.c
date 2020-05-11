@@ -1,5 +1,6 @@
 #include "knnd.h"
 #include "vec.h"
+#include "bruteforce.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,6 +59,8 @@ void heap_list_free(heap_t* hl, int size)
 
 
 
+
+
 int nn_update(heap_t* B, heap_t* h, uint32_t id, float dist)
 {
     // insert node into maxheap h if it is more similar than the current root
@@ -73,7 +76,7 @@ int nn_update(heap_t* B, heap_t* h, uint32_t id, float dist)
         B[id].rev_new++;
     } else {
         // to be replaced is not new
-        R->rev_old--;    
+        R->rev_old--;
         B[id].rev_new++;
 
         // replacing forward old with
@@ -121,11 +124,11 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
     // initialize heap list B
     for (int i = 0; i < data.size; i++) {
-        // sample 
+        // sample
         for (int j = 0; j < k;) {
             uint32_t id = (int)rand() % data.size;
             if (heap_insert_bounded(&B[i], id, FLT_MAX, true, k) == 1) {
-                j++;    
+                j++;
                 B[id].rev_new++;
                 B[i].fwd_new++;
             }
@@ -135,13 +138,8 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     int c; // number of updates in this iteration
     int stop_iter = delta * data.size * k; // terminate if less than this many changes made
 
-     typedef struct {
-         uint32_t u;
-         uint32_t v;
-         float dist;
-     } update_t;
-     update_t updates[8*16384];
-     int update_size=0;
+    update_t updates[8*16384];
+    int update_size=0;
     do {
         vec_list_clear(old, data.size);
         vec_list_clear(new, data.size);
@@ -150,28 +148,12 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
         c = 0;
         for (int v = 0; v < data.size; v++) {
-            for (int i = 0; i < new[v].size; i++) {
-                for (int k=0; k<2; k++) {
-                    vec_t* heap_list = (k==0) ? new : old;
+            // brute force algorithm to solve KNN:
+            // for new[v] x new[v]
+            // for new[v] x old[v]
+            update_size = nn_brute_force(metric, data, updates, update_size, &new[v], &new[v]);
+            update_size = nn_brute_force(metric, data, updates, update_size, &new[v], &old[v]);
 
-                    for (int j = 0; j < heap_list[v].size; j++) {
-                        if (i == j) continue;
-
-                        uint32_t u1_id, u2_id;
-                        u1_id = new[v].ids[i];
-                        u2_id = heap_list[v].ids[j];
-
-                        if (u1_id <= u2_id) continue;
-
-                        float l = metric(data.values[u1_id], data.values[u2_id], data.dim);
-                        updates[update_size++] = (update_t) {u1_id, u2_id, l};
-                        
-
-                        // c += nn_update(B, &B[u1_id], u2_id, l);
-                        // c += nn_update(B, &B[u2_id], u1_id, l);
-                    } 
-                }
-            }
             // we will create at most m_c*m_c*2 updates in the next iteration
             // if theres enough space we do not need to perform the updates yet
             if (8*16384-update_size < max_candidates*max_candidates*2) {
@@ -208,13 +190,13 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
 int sample_reverse_union(vec_t* new, vec_t* old, heap_t* B, int max_candidates, int N) {
     // this function samples, reverses and does the union all at once
-    
+
     for (int i=0; i<N; i++) {
         heap_t heap = B[i];
         int u = i;
 
         for (int j=0; j<heap.size; j++) {
-            bool isnew = heap.isnews[j]; 
+            bool isnew = heap.isnews[j];
             uint32_t v = heap.ids[j];
             heap_t heap_v = B[v];
 
@@ -225,8 +207,8 @@ int sample_reverse_union(vec_t* new, vec_t* old, heap_t* B, int max_candidates, 
             // same story for v
             int pr_u = (isnew) ? (heap.fwd_new + heap.rev_new) :  (heap.fwd_old + heap.rev_old);
             int pr_v = (isnew) ? (heap_v.fwd_new + heap_v.rev_new) :  (heap_v.fwd_old + heap_v.rev_old);
- 
-            
+
+
             // corresponds to sampling with pr max_candidates/pr_u
             if (rand() % pr_u < max_candidates) {
                 vec_insert_bounded(&heap_list[u], v, max_candidates);
@@ -247,7 +229,7 @@ int sample_reverse_union(vec_t* new, vec_t* old, heap_t* B, int max_candidates, 
                     // we have one fewer flagged v -> u
                     // and one more not-flagged v->u
                     B[v].rev_new--;
-                    B[v].rev_old++; 
+                    B[v].rev_old++;
                 }
             }
 
@@ -289,7 +271,7 @@ int validate_connection_counters(heap_t* B, int N) {
 
 
         for (int j=0; j<heap.size; j++) {
-            bool isnew = heap.isnews[j]; 
+            bool isnew = heap.isnews[j];
             uint32_t v = heap.ids[j];
             if (isnew) {
                 fwd_new[i]++;
