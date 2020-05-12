@@ -1,3 +1,17 @@
+# Week 7
+## Discussion
+- ballTree algoritm too complex
+- Inner case of randomized KNN descent is brute force algo
+- Brute Force too slow for benchmarking
+## Tasks
+- Use another norm/metric
+- Do evaluation
+- Sort dataset to get speedup
+## Timetable
+- This week: Do some experiments to get better performance
+- Next week: Do evaluation for presentation/report
+- Final week: Prepare for presentation
+
 # Week 6
 ## Project meeting
 - Find k that it becomes compute bound
