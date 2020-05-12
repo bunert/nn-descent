@@ -22,11 +22,21 @@ char * const nulFileName = "/dev/null";
 float l2(float* v1, float* v2, int d)
 {
     float acc = 0.0f;
-    for (int i = 0; i < d; i++) {
+    float acc2 = 0.0f;
+    float acc3 = 0.0f;
+    float acc4 = 0.0f;
+    int offset=d/4;
+    for (int i = 0; i < offset; i++) {
+        acc += (v1[i] - v2[i]) * (v1[i] - v2[i]);
+        acc2 += (v1[offset+i] - v2[offset+i]) * (v1[offset+i] - v2[offset+i]);
+        acc3 += (v1[2*offset+i] - v2[2*offset+i]) * (v1[2*offset+i] - v2[2*offset+i]);
+        acc4 += (v1[3*offset+i] - v2[3*offset+i]) * (v1[3*offset+i] - v2[3*offset+i]);
+    }
+    for (int i = 4*offset; i < d; i++) {
         acc += (v1[i] - v2[i]) * (v1[i] - v2[i]);
     }
 
-    return sqrt(acc);
+    return acc+acc2+acc3+acc4;
 }
 
 void heap_check(heap_t* h, int i)
@@ -207,6 +217,7 @@ heap_t* timeofday(double* c, dataset_t data, float(*metric)(float*, float*, int)
 
 int main(int argc, char *argv[])
 {
+    srand(time(NULL));
     if (argc != 6) {
         printf("Usage: <inputfilename> <outputfilename> N D K");
         return 0;

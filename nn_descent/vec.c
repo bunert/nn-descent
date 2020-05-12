@@ -29,10 +29,23 @@ int heap_create(heap_t* h, int capacity)
     h->ids = malloc(sizeof(uint32_t) * capacity);
     h->vals = malloc(sizeof(float) * capacity);
     h->isnews = malloc(sizeof(bool) * capacity);
+    h->rev_old = 0;
+    h->rev_new = 0;
+    h->fwd_old = 0;
+    h->fwd_new = 0;
     if (!h->ids || !h->vals || !h->isnews)
         return 0;
 
     return 1;
+}
+
+void vec_insert_bounded(vec_t* h, uint32_t id, int max_candidates) {
+    // here we regard the vec_t as a simple list of ids
+    // bounded by max_candidates
+    if (h->size==max_candidates)
+        return;
+    h->ids[h->size] = id;
+    h->size++;
 }
 
 // logically remove all elements from the heap

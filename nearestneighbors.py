@@ -63,9 +63,9 @@ def c_nearest_neighbors(directory, dataset, K, metric, repetition, stdout=False,
     # calls reference implementation for NN
 
     if gprof_compile:
-        process = subprocess.run(['gcc','knnd.c','knnd_test.c', 'vec.c', '-lm', '-O3', '-ffast-math', '-march=native', '-pg'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
+        process = subprocess.run(['gcc','knnd.c','knnd_test.c', 'vec.c', 'bruteforce.c', '-lm', '-O3', '-ffast-math', '-march=native', '-pg'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
     else:
-        process = subprocess.run(['gcc','knnd.c','knnd_test.c', 'vec.c', '-lm', '-O3', '-ffast-math', '-march=native'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
+        process = subprocess.run(['gcc','knnd.c','knnd_test.c', 'vec.c', 'bruteforce.c', '-lm', '-O3', '-ffast-math', '-march=native'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
 
     if metric != 'l2':
         raise ValueError(metric + ' not implemented')
