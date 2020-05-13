@@ -9,7 +9,7 @@
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-int nn_brute_force(float(*metric)(float*, float*, int), dataset_t data, update_t* updates, int update_index, vec_t *vec_a, vec_t *vec_b){
+void nn_brute_force(float(*metric)(float*, float*, int), dataset_t data, update_t* updates, vec_t *vec_a, vec_t *vec_b){
     uint32_t u1_id[8];
     uint32_t u2_id[8];
     int agg_cnt=0;
@@ -55,22 +55,28 @@ int nn_brute_force(float(*metric)(float*, float*, int), dataset_t data, update_t
 
             __m256 z = _mm256_add_ps(z01234567, z45670123_flipped);
 
-            // TODO: proper store smw smh
-            for (int l=0; l<8; l++) {
-                updates[update_index++] = (update_t) {u1_id[l], u2_id[l], ((float*)&z)[l]};
-            } 
+            _mm256_storeu_si256((__m256i *)&(updates->u[updates->size]), _mm256_set_epi32(u1_id[7],u1_id[6],u1_id[5],u1_id[4],u1_id[3],u1_id[2],u1_id[1],u1_id[0]));
+            _mm256_storeu_si256((__m256i *)&(updates->v[updates->size]), _mm256_set_epi32(u2_id[7],u2_id[6],u2_id[5],u2_id[4],u2_id[3],u2_id[2],u2_id[1],u2_id[0]));
+            _mm256_storeu_ps(&(updates->dist[updates->size]), z);
+            updates->size += 8;
+
+
         }
+
     }
 
     for (int j = 0; j < agg_cnt; j++) {
         float l = metric(data.values[u1_id[j]], data.values[u2_id[j]], data.dim);
-        updates[update_index++] = (update_t) {u1_id[j], u2_id[j], l};
+            int ind = updates->size;
+            updates->u[ind] = u1_id[j];
+            updates->v[ind] = u2_id[j];
+            updates->dist[ind] = l;
+            updates->size++;
     }
     /*
        float l = metric(data.values[u1_id], data.values[u2_id], data.dim);
        updates[update_index++] = (update_t) {u1_id, u2_id, l};*/
 
-    return update_index;
 }
             // x = _mm256_permute2f128_ps( x , x , 1)
 /*
