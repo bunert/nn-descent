@@ -41,8 +41,9 @@ class Costdata:
             self.table_data['total ms/call'].append(float(values[5]))
             self.table_data['name'].append(values[6])
 
-        self.metric_name = metric
-        self.metric_index = self.table_data['name'].index(metric)
+        print(self.table_data['name'])
+        self.metric_name = 'sim_eval' if 'sim_eval' in self.table_data['name'] else metric
+        self.metric_index = self.table_data['name'].index(self.metric_name)
         self.metric_calls = self.table_data['calls'][self.metric_index]
 
     def print(self):

@@ -142,9 +142,9 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     const int UPD_MAX_SIZE = 8*16384;
     update_t updates;
     updates.size=0;
-    updates.u = malloc(data.size*data.size*sizeof(uint32_t));
-    updates.v = malloc(data.size*data.size*sizeof(uint32_t));
-    updates.dist = malloc(data.size*data.size*sizeof(float));
+    updates.u = malloc(UPD_MAX_SIZE*sizeof(uint32_t));
+    updates.v = malloc(UPD_MAX_SIZE*sizeof(uint32_t));
+    updates.dist = malloc(UPD_MAX_SIZE*sizeof(float));
 
     do {
         vec_list_clear(old, data.size);

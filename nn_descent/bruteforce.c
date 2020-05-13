@@ -8,6 +8,42 @@
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+#ifdef INSTR
+
+ #pragma GCC push_options
+ #pragma GCC optimize ("O0")
+ 
+ void sim_eval() {
+ }
+ #pragma GCC pop_options
+
+ #define DIST_EVAL() sim_eval()
+ #else
+ #define DIST_EVAL() true
+ #endif
+ 
+inline float single_l2(float* v1, float* v2, int d)
+{
+    DIST_EVAL();
+    float acc = 0.0f;
+    float acc2 = 0.0f;
+    float acc3 = 0.0f;
+    float acc4 = 0.0f;
+    int offset=d/4;
+    for (int i = 0; i < offset; i++) {
+        acc += (v1[i] - v2[i]) * (v1[i] - v2[i]);
+        acc2 += (v1[offset+i] - v2[offset+i]) * (v1[offset+i] - v2[offset+i]);
+        acc3 += (v1[2*offset+i] - v2[2*offset+i]) * (v1[2*offset+i] - v2[2*offset+i]);
+        acc4 += (v1[3*offset+i] - v2[3*offset+i]) * (v1[3*offset+i] - v2[3*offset+i]);
+    }
+    for (int i = 4*offset; i < d; i++) {
+        acc += (v1[i] - v2[i]) * (v1[i] - v2[i]);
+    }
+
+    return acc+acc2+acc3+acc4;
+}
+ 
+
 
 void nn_brute_force(float(*metric)(float*, float*, int), dataset_t data, update_t* updates, vec_t *vec_a, vec_t *vec_b){
     uint32_t u1_id[8];
@@ -22,6 +58,7 @@ void nn_brute_force(float(*metric)(float*, float*, int), dataset_t data, update_
         for (int j = start; j < vec_b->size; j++) {
             u1_id[agg_cnt] = vec_a->ids[i];
             u2_id[agg_cnt] = vec_b->ids[j];
+            DIST_EVAL();
             agg_cnt++;
             if (agg_cnt < 8) continue;
             agg_cnt = 0;
@@ -66,7 +103,7 @@ void nn_brute_force(float(*metric)(float*, float*, int), dataset_t data, update_
     }
 
     for (int j = 0; j < agg_cnt; j++) {
-        float l = metric(data.values[u1_id[j]], data.values[u2_id[j]], data.dim);
+        float l = single_l2(data.values[u1_id[j]], data.values[u2_id[j]], data.dim);
             int ind = updates->size;
             updates->u[ind] = u1_id[j];
             updates->v[ind] = u2_id[j];
@@ -78,6 +115,8 @@ void nn_brute_force(float(*metric)(float*, float*, int), dataset_t data, update_
        updates[update_index++] = (update_t) {u1_id, u2_id, l};*/
 
 }
+
+
             // x = _mm256_permute2f128_ps( x , x , 1)
 /*
             {
