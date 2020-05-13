@@ -164,6 +164,7 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
             // if theres enough space we do not need to perform the updates yet
             if (UPD_MAX_SIZE-updates.size < max_candidates*max_candidates*2) {
                 for (int i=0; i<updates.size; i++) {
+                    if (updates.u[i] == updates.v[i]) continue;
                     c += nn_update(B, &B[updates.u[i]], updates.v[i] , updates.dist[i]);
                     c += nn_update(B, &B[updates.v[i]], updates.u[i] , updates.dist[i]);
                 }
@@ -172,6 +173,7 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
             // N * max_c * 2 * max_c
         }
         for (int i=0; i<updates.size; i++) {
+            if (updates.u[i] == updates.v[i]) continue;
             c += nn_update(B, &B[updates.u[i]], updates.v[i] , updates.dist[i]);
             c += nn_update(B, &B[updates.v[i]], updates.u[i] , updates.dist[i]);
         }
