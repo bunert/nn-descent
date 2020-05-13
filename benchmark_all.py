@@ -17,13 +17,15 @@ if __name__ == "__main__":
     parser.add_argument('-ns', '--nstart', help='logn start', default=8, type=int)
     parser.add_argument('-ne', '--nend', help='logn end', default=18, type=int)
     parser.add_argument('-nr', '--nres', help='logn resolution', default=1, type=int)
+    parser.add_argument('-t', '--tag', help='single tag', default=None, type=str)
 
     parser.add_argument('-d', '--dataset', help='audio or gaussian', default='gaussian')
     args = parser.parse_args()
 
     print(args)
 
-for t in ['T0', 'T1', 'T2', 'iterative_heapify', 'heap_insert_bounded', 'turbosampling', 'defered', 'l2intrinsics']:
+tags = ['T0', 'T1', 'T2', 'iterative_heapify', 'heap_insert_bounded', 'turbosampling', 'defered', 'l2intrinsics'] if args.tag is None else [args.tag]
+for t in tags:
 # delete temp directory
     subprocess.run(['rm', '-rf','tmp'])
 
