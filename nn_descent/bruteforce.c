@@ -10,17 +10,17 @@
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 #ifdef INSTR
 
- #pragma GCC push_options
- #pragma GCC optimize ("O0")
- 
- void sim_eval() {
- }
- #pragma GCC pop_options
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
 
- #define DIST_EVAL() sim_eval()
- #else
- #define DIST_EVAL() true
- #endif
+void sim_eval() {
+}
+#pragma GCC pop_options
+
+#define DIST_EVAL() sim_eval()
+#else
+#define DIST_EVAL() true
+#endif
  
 inline float single_l2(float* v1, float* v2, int d)
 {
@@ -53,8 +53,9 @@ void nn_brute_force(float(*metric)(float*, float*, int), dataset_t data, update_
 
 
         // if they match, can only do upper triangle due to symmetry of euclidean distance
-        int start = (vec_a == vec_b) ? i+1 : 0;
+        int start = (vec_a == vec_b) ? 0 : 0;
         for (int j = start; j < vec_b->size; j++) {
+            if (vec_a->ids[i] <= vec_b->ids[j]) continue; 
             u1_id[agg_cnt] = vec_a->ids[i];
             u2_id[agg_cnt] = vec_b->ids[j];
             DIST_EVAL();
