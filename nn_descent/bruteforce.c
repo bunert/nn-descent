@@ -24,7 +24,6 @@
  
 inline float single_l2(float* v1, float* v2, int d)
 {
-    DIST_EVAL();
     float acc = 0.0f;
     float acc2 = 0.0f;
     float acc3 = 0.0f;
