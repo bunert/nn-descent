@@ -11,9 +11,10 @@ typedef struct {
 } dataset_t;
 
 typedef struct {
-    uint32_t u;
-    uint32_t v;
-    float dist;
+    uint32_t* u;
+    uint32_t* v;
+    float* dist;
+    int size;;
 } update_t;
 
 int make_test_data(dataset_t*, int, int);

@@ -19,6 +19,7 @@ vec_t* vec_list_create(int size, int k)
     return vl;
 }
 
+
 heap_t* heap_list_create(int size, int k)
 {
     // create list of 'size' many max heaps
@@ -138,8 +139,13 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     int c; // number of updates in this iteration
     int stop_iter = delta * data.size * k; // terminate if less than this many changes made
 
-    update_t updates[8*16384];
-    int update_size=0;
+    const int UPD_MAX_SIZE = 8*16384;
+    update_t updates;
+    updates.size=0;
+    updates.u = malloc(UPD_MAX_SIZE*sizeof(uint32_t));
+    updates.v = malloc(UPD_MAX_SIZE*sizeof(uint32_t));
+    updates.dist = malloc(UPD_MAX_SIZE*sizeof(float));
+
     do {
         vec_list_clear(old, data.size);
         vec_list_clear(new, data.size);
@@ -151,30 +157,30 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
             // brute force algorithm to solve KNN:
             // for new[v] x new[v]
             // for new[v] x old[v]
-            update_size = nn_brute_force(metric, data, updates, update_size, &new[v], &new[v]);
-            update_size = nn_brute_force(metric, data, updates, update_size, &new[v], &old[v]);
+            nn_brute_force(metric, data, &updates, &new[v], &new[v]);
+            nn_brute_force(metric, data, &updates, &new[v], &old[v]);
 
             // we will create at most m_c*m_c*2 updates in the next iteration
             // if theres enough space we do not need to perform the updates yet
-            if (8*16384-update_size < max_candidates*max_candidates*2) {
-                for (int i=0; i<update_size; i++) {
-                    update_t upd = updates[i];
-                    c += nn_update(B, &B[upd.u], upd.v, upd.dist);
-                    c += nn_update(B, &B[upd.v], upd.u, upd.dist);
+            if (UPD_MAX_SIZE-updates.size < max_candidates*max_candidates*2) {
+                for (int i=0; i<updates.size; i++) {
+                    if (updates.u[i] == updates.v[i]) continue;
+                    c += nn_update(B, &B[updates.u[i]], updates.v[i] , updates.dist[i]);
+                    c += nn_update(B, &B[updates.v[i]], updates.u[i] , updates.dist[i]);
                 }
-                update_size=0;
+                updates.size=0;
             }
             // N * max_c * 2 * max_c
         }
-        for (int i=0; i<update_size; i++) {
-            update_t upd = updates[i];
-            c += nn_update(B, &B[upd.u], upd.v, upd.dist);
-            c += nn_update(B, &B[upd.v], upd.u, upd.dist);
+        for (int i=0; i<updates.size; i++) {
+            if (updates.u[i] == updates.v[i]) continue;
+            c += nn_update(B, &B[updates.u[i]], updates.v[i] , updates.dist[i]);
+            c += nn_update(B, &B[updates.v[i]], updates.u[i] , updates.dist[i]);
         }
-        update_size=0;
+        updates.size=0;
        // printf("iteration complete: %d / %d\n", c, stop_iter);
     } while (c >= stop_iter);
-    // assert(validate_connection_counters(B, data.size)==data.size*k*2);
+// assert(validate_connection_counters(B, data.size)==data.size*k*2);
 
     printf("NNDescent finished \n");
 
@@ -182,6 +188,9 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
     free(old);
     free(new);
+    free(updates.u);
+    free(updates.v);
+    free(updates.dist);
 
     return B;
 }
