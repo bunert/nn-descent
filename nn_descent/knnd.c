@@ -11,10 +11,14 @@
 
 vec_t* vec_list_create(int size, int k)
 {
-    vec_t* vl = malloc(sizeof(vec_t) * size + sizeof(uint32_t) * k * size);
-    for (int i=0; i<size; i++) {
+    // Scalar replacement
+    uint32_t tmp1 = sizeof(vec_t) * size;
+    uint32_t tmp2 = sizeof(uint32_t) * k;
+
+    vec_t* vl = malloc(tmp1 + tmp2 * size);
+    for (int i = 0; i < size; i++) {
         vl[i].size = 0;
-        vl[i].ids = (uint32_t*) ((size_t)vl + sizeof(vec_t)*size + i*sizeof(uint32_t)*k);
+        vl[i].ids = (uint32_t*)((size_t)vl + tmp1 + i * tmp2);
     }
     return vl;
 }
@@ -56,11 +60,6 @@ void heap_list_free(heap_t* hl, int size)
 
     free(hl);
 }
-
-
-
-
-
 
 int nn_update(heap_t* B, heap_t* h, uint32_t id, float dist)
 {
@@ -104,30 +103,31 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     // rho: sample rate in (0,1] (2.5 Sampling)
     // delta: precision parameter, terminate if less than delta*K*N updates in an iteration
     int max_candidates = 50;
+    int data_size = data.size;
 
-    if (k >= data.size) {
+    if (k >= data_size) {
         printf("error: neighborhood size must be less than dataset size\n");
         return NULL;
     }
 
     // create lists with the maxheaps for each datapoint
-    heap_t* B     = heap_list_create(data.size, k);
-    vec_t* old   = vec_list_create(data.size, max_candidates);
-    vec_t* new   = vec_list_create(data.size, max_candidates);
+    heap_t* B     = heap_list_create(data_size, k);
+    vec_t* old   = vec_list_create(data_size, max_candidates);
+    vec_t* new   = vec_list_create(data_size, max_candidates);
 
     if (!B || !old || !new) {
         printf("error: failed to allocate one or more heap lists\n");
-        if (B) heap_list_free(B, data.size);
+        if (B) heap_list_free(B, data_size);
         if (old) free(old);
         if (new) free(new);
         return NULL;
     }
 
     // initialize heap list B
-    for (int i = 0; i < data.size; i++) {
+    for (int i = 0; i < data_size; i++) {
         // sample
         for (int j = 0; j < k;) {
-            uint32_t id = (int)rand() % data.size;
+            uint32_t id = (int)rand() % data_size;
             if (heap_insert_bounded(&B[i], id, FLT_MAX, true, k) == 1) {
                 j++;
                 B[id].rev_new++;
@@ -137,7 +137,7 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     }
 
     int c; // number of updates in this iteration
-    int stop_iter = delta * data.size * k; // terminate if less than this many changes made
+    int stop_iter = delta * data_size * k; // terminate if less than this many changes made
 
     const int UPD_MAX_SIZE = 8*16384;
     update_t updates;
@@ -147,13 +147,13 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     updates.dist = malloc(UPD_MAX_SIZE*sizeof(float));
 
     do {
-        vec_list_clear(old, data.size);
-        vec_list_clear(new, data.size);
+        vec_list_clear(old, data_size);
+        vec_list_clear(new, data_size);
 
-        sample_reverse_union(new, old, B, max_candidates, data.size);
+        sample_reverse_union(new, old, B, max_candidates, data_size);
 
         c = 0;
-        for (int v = 0; v < data.size; v++) {
+        for (int v = 0; v < data_size; v++) {
             // brute force algorithm to solve KNN:
             // for new[v] x new[v]
             // for new[v] x old[v]
