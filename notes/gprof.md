@@ -65,3 +65,29 @@ Copying and distribution of this file, with or without modification,
 are permitted in any medium without royalty provided the copyright
 notice and this notice are preserved.
 ```
+
+### Counting compares
+`gcc knnd.c knnd_test.c vec.c  -lm -O3 -ffast-math -march=native -pg -ggdb -fno-inline-small-functions -D"INSTR=true"`
+
+```
+#ifdef INSTR
+ int log_fp_comp();
+ 
+ #define FP_COMP() log_fp_comp()
+ #define INSTR_ONCE 1
+ #else
+ #define FP_COMP() true;
+ #endif
+ 
+ 
+ #pragma GCC push_options
+ #pragma GCC optimize ("O0")
+ 
+ int log_fp_comp() {
+     return 1;
+ }
+ #pragma GCC pop_options
+```
+
+ 
+ Then insert macro FP_COMP() on every comparison. For high-dimensional data compares don't matter (<1%), for lower dimensional data its something like 8%.

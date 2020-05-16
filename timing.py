@@ -37,8 +37,8 @@ class Timingdata:
         print('{:<20s}{:<10s}'.format("variance:", str(data.var_runtime)))
 
 def parse_output(txt):
-    if (txt[0].split()[-1] != 'finished'):
+    if (txt[len(txt)-4].split()[-1] != 'finished'):
         print("Algorithm not finished, probably some error occured.")
-    c = float(txt[1].split()[0])
-    t = float(txt[2].split()[0])
+    c = float(txt[len(txt)-3].split()[0])
+    t = float(txt[len(txt)-2].split()[0])
     return c,t

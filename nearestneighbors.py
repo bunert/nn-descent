@@ -59,13 +59,19 @@ def nearest_neighbors(dataset, K, metric):
 
 # performs reference knndescent on dataset
 # returns nearestneighbors and timing
-def c_nearest_neighbors(directory, dataset, K, metric, repetition, gprof_compile=False):
+def c_nearest_neighbors(directory, dataset, K, metric, repetition, stdout=False, gprof_compile=False):
     # calls reference implementation for NN
+    files = ['knnd.c', 'knnd_test.c', 'vec.c']
 
+    # was only added in recent commits, should remain backwards compatible
+    if os.path.isfile(os.path.join(directory, 'bruteforce.c')):
+        files.append('bruteforce.c')
+
+    flags = ['-lm','-O3','-ffast-math','-march=native']
     if gprof_compile:
-        process = subprocess.run(['gcc','knnd.c','knnd_test.c', 'vec.c', '-lm', '-O3', '-ffast-math', '-march=native', '-pg'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
+        process = subprocess.run(['gcc'] + files + flags + ['-pg', '-DINSTR=true'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
     else:
-        process = subprocess.run(['gcc','knnd.c','knnd_test.c', 'vec.c', '-lm', '-O3', '-ffast-math', '-march=native'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
+        process = subprocess.run(['gcc'] + files + flags + ['-DCALIBRATE'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
 
     if metric != 'l2':
         raise ValueError(metric + ' not implemented')
@@ -79,9 +85,9 @@ def c_nearest_neighbors(directory, dataset, K, metric, repetition, gprof_compile
 
     for i in range(repetition):
         process = subprocess.run([path,'data','output', str(dataset.N), str(dataset.D), str(K)], check=True, stdout=subprocess.PIPE, universal_newlines=True)
-        txt = process.stdout.splitlines()
+        if stdout: print(process.stdout)
 
-        c,t  = parse_output(txt)
+        c,t  = parse_output(process.stdout.splitlines())
         nn_data = NearestNeighbors(filename='output')
 
         cycles[i] = c

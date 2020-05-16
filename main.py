@@ -21,6 +21,8 @@ parser.add_argument('-v', '--verify', help='compare recall to pynndescent', acti
 parser.set_defaults(verify=False)
 parser.add_argument('-c', '--cost', help='measurements of costs (similarity evaluations)', action='store_true', dest='cost')
 parser.set_defaults(cost=False)
+parser.add_argument('-o', '--out', help='print stdout of c code', action='store_true', dest='out')
+parser.set_defaults(out=False)
 args = parser.parse_args()
 print(args)
 
@@ -28,7 +30,7 @@ print(args)
 dataset = get_dataset(data_name=args.dataset, n=args.n, dim=args.dim)
 
 
-nn_list, timing_data = c_nearest_neighbors(args.path, dataset, args.k, args.metric, args.repetitions)
+nn_list, timing_data = c_nearest_neighbors(args.path, dataset, args.k, args.metric, args.repetitions, stdout=args.out)
 timing_data.print()
 
 if args.verify:
