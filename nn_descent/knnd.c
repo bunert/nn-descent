@@ -8,6 +8,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <sys/time.h>
 
 #define FREQUENCY 2.7e9
 
@@ -149,10 +150,10 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     updates.dist = malloc(UPD_MAX_SIZE*sizeof(float));
 
     int iter = 1;
-    clock_t start, end;
+    struct timeval start, end;
 
     do {
-        start = start_tsc();
+        gettimeofday(&start, NULL);
         vec_list_clear(old, data_size);
         vec_list_clear(new, data_size);
 
@@ -186,8 +187,9 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
         updates.size=0;
        // printf("iteration complete: %d / %d\n", c, stop_iter);
 
-       double cycles = (double) stop_tsc(start);
-       printf("Iteration %d: %f seconds\n", iter, c/(FREQUENCY));
+       gettimeofday(&end, NULL);
+       double timing = (double)((end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec)/1e6);
+       printf("Iteration %d: %f seconds\n", iter, timing);
        iter++;
     } while (c >= stop_iter);
 // assert(validate_connection_counters(B, data.size)==data.size*k*2);
