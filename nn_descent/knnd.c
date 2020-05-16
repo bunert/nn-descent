@@ -9,6 +9,8 @@
 #include <stdbool.h>
 #include <assert.h>
 
+#define FREQUENCY 2.7e9
+
 vec_t* vec_list_create(int size, int k)
 {
     // Scalar replacement
@@ -146,7 +148,11 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     updates.v = malloc(UPD_MAX_SIZE*sizeof(uint32_t));
     updates.dist = malloc(UPD_MAX_SIZE*sizeof(float));
 
+    int iter = 1;
+    clock_t start, end;
+
     do {
+        start = start_tsc();
         vec_list_clear(old, data_size);
         vec_list_clear(new, data_size);
 
@@ -179,6 +185,10 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
         }
         updates.size=0;
        // printf("iteration complete: %d / %d\n", c, stop_iter);
+
+       double cycles = (double) stop_tsc(start);
+       printf("Iteration %d: %f seconds\n", iter, c/(FREQUENCY));
+       iter++;
     } while (c >= stop_iter);
 // assert(validate_connection_counters(B, data.size)==data.size*k*2);
 

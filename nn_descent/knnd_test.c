@@ -12,7 +12,7 @@
 #define NUM_RUNS 1
 #define CYCLES_REQUIRED 1e8
 //TODO adapt frequency!
-#define FREQUENCY 1.4e9
+#define FREQUENCY 2.7e9
 // #define CALIBRATE
 
 char * const nulFileName = "/dev/null";
