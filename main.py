@@ -14,7 +14,7 @@ parser.add_argument('-p','--path', required=True, help='path to a.out executable
 parser.add_argument('-r','--repetitions', help='repetitions', default=1, type=int)
 parser.add_argument('-k', help='k', default=20, type=int)
 parser.add_argument('-n', help='#points', default=None, type=int)
-parser.add_argument('-dim', help='dimension of space', default=10, type=int)
+parser.add_argument('-dim', help='dimension of space', default=8, type=int)
 parser.add_argument('-m', '--metric', help='l2', default='l2')
 parser.add_argument('-d', '--dataset', help='audio or gaussian', default='gaussian')
 parser.add_argument('-v', '--verify', help='compare recall to pynndescent', action='store_true', dest='verify')
@@ -25,7 +25,6 @@ parser.add_argument('-o', '--out', help='print stdout of c code', action='store_
 parser.set_defaults(out=False)
 args = parser.parse_args()
 print(args)
-
 
 dataset = get_dataset(data_name=args.dataset, n=args.n, dim=args.dim)
 

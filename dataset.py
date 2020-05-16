@@ -4,6 +4,10 @@ import urllib.request
 import pandas as pd
 
 def get_dataset(data_name, n, dim):
+    if ((dim % 8 != 0)):
+        print("Choose dimensionality which is divisible by 8 (restriction)")
+        exit(1)
+
     if data_name == 'gaussian':
         # n datapoints sampled from each of dim gaussians centered around canonical basis vector with dimension dim
         n = 1000 if n is None else n
@@ -18,9 +22,9 @@ def get_dataset(data_name, n, dim):
         return AudioDataset(n)
     elif data_name == 'mnist' or data_name == 'digits':
         # MNIST dataset of 70k handwritten digits (784 dimensional)
-    
+
         mnist_filenames = ["mnist_train.csv","mnist_test.csv"]
-    
+
         for csv_file in mnist_filenames:
             if not Path(csv_file).is_file():
                 print("downloading " + csv_file)
@@ -109,8 +113,3 @@ class MnistDataset(Dataset):
         self.X = complete_df.iloc[:,1:].to_numpy(dtype='float32')
         self.N = complete_df.shape[0] # 70,000
         self.D = complete_df.shape[1] - 1 # 784
-
-
-
-
-
