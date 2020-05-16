@@ -17,7 +17,7 @@ def get_dataset(data_name, n, dim):
             print("audio.data not here, downloading...")
             urllib.request.urlretrieve ("http://kluser.ch/audio.data", "audio.data")
         return AudioDataset(n)
-    elif data_name == 'mnist' or data_name == 'digits' or data_name == 'sorted_mnist':
+    elif data_name == 'mnist' or data_name == 'digits' or data_name == 'sorted_mnist' or data_name == 'umap_mnist':
         # MNIST dataset of 70k handwritten digits (784 dimensional)
     
         mnist_filenames = ["mnist_train.csv","mnist_test.csv"]
@@ -30,7 +30,9 @@ def get_dataset(data_name, n, dim):
         if data_name == 'mnist' or data_name == 'digits':
             return MnistDataset()
         elif data_name == 'sorted_mnist':
-            return MnistSortedDataset()
+            return MnistSortedDataset(umap=False)
+        elif data_name == 'umap_mnist':
+            return MnistSortedDataset(umap=True)
         else:
             #cannot occur
             print('error: dataset not implemented')
@@ -124,8 +126,11 @@ class MnistSortedDataset(Dataset):
 
     # MNIST dataset sorted according to a 1d umap
 
-    def __init__(self):
-        df = pd.read_csv('mnist_sort_pca.csv', header=None)
+    def __init__(self, umap=True):
+        if umap:
+            df = pd.read_csv('mnist_sort_umap.csv', header=None)
+        else:
+            df = pd.read_csv('mnist_sort_pca.csv', header=None)
 
 
 
