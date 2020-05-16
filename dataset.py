@@ -125,13 +125,13 @@ class MnistSortedDataset(Dataset):
     # MNIST dataset sorted according to a 1d umap
 
     def __init__(self):
-        df = pd.read_csv('mnist_sort.csv', header=None)
+        df = pd.read_csv('mnist_sort_pca.csv', header=None)
 
 
 
         self.X = df.to_numpy(dtype='float32')
         self.N = df.shape[0] # 70,000
-        self.D = df.shape[1] - 1 # 784
+        self.D = df.shape[1] # 784
 
 
 
