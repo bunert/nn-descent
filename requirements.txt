@@ -3,4 +3,3 @@ numpy
 pynndescent
 matplotlib
 pandas>=1.0.3
-umap-earn>=0.4.2
