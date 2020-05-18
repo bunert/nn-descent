@@ -54,7 +54,7 @@ void heap_check(heap_t* h, int i)
 }
 
 void read_data(char* filename, int N, int D, dataset_t* data) {
-    data->values = malloc((sizeof(float*) * N) + (N * D * sizeof(float)));
+    data->values = aligned_alloc(256, (sizeof(float*) * N) + (N * D * sizeof(float)));
     data->size = N;
     data->dim = D;
     FILE *fp;
