@@ -21,8 +21,8 @@ typedef struct {
 } heap_t;
 
 typedef struct {
-    uint32_t *ids;
     int size;
+    uint32_t *ids;
 } vec_t;
 void vec_insert_bounded(vec_t* h, uint32_t id, int max_candidates);
 
