@@ -9,8 +9,11 @@
 #include <stdbool.h>
 #include <assert.h>
 #include <sys/time.h>
+#include <string.h>
 
 #define FREQUENCY 2.7e9
+
+#define SWAP(x, y) {int tmp = x; x = y; y = tmp; }
 
 vec_t* vec_list_create(int size, int k)
 {
@@ -152,6 +155,12 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     int iter = 1;
     struct timeval start, end;
 
+    uint32_t* permutation = malloc(data.size * sizeof(uint32_t));
+    // initialize perutation
+    for (uint32_t n = 0; n < data.size; n++) {
+      permutation[n] = n;
+    }
+
     do {
         gettimeofday(&start, NULL);
         vec_list_clear(old, data_size);
@@ -187,10 +196,16 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
         updates.size=0;
        // printf("iteration complete: %d / %d\n", c, stop_iter);
 
+       // reallocate data after first iteration
+       if (iter==1){
+         reallocate_data(permutation, B, data, k);
+       }
+
        gettimeofday(&end, NULL);
        double timing = (double)((end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec)/1e6);
        printf("Iteration %d: %f seconds\n", iter, timing);
        iter++;
+
     } while (c >= stop_iter);
 // assert(validate_connection_counters(B, data.size)==data.size*k*2);
 
@@ -198,16 +213,75 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
     //printf("done, cleaning up...\n");
 
+    revert_permutation(permutation, B, k);
+
     free(old);
     free(new);
     free(updates.u);
     free(updates.v);
     free(updates.dist);
+    free(permutation);
 
     return B;
 }
 
+void reallocate_data(uint32_t* permutation, heap_t* B, dataset_t data, int k){
 
+  switch_i_j(B, data, 10, 11, k);
+  switch_i_j(B, data, 11, 10, k);
+
+}
+
+void revert_permutation(uint32_t* permutation, heap_t* B, int k){
+
+}
+
+void switch_i_j(heap_t* B, dataset_t data, uint32_t i, uint32_t j, int k){
+  // swap data.values[i] and data.values[j]
+  // test1 just for assert
+  float test1 = data.values[i][7];
+
+  float* tmp = malloc(data.dim * sizeof(float));
+  memcpy(tmp, data.values[i], sizeof(float)*data.dim );
+  memcpy(data.values[i], data.values[j], sizeof(float)*data.dim );
+  memcpy(data.values[j], tmp, sizeof(float)*data.dim );
+  assert(test1 == data.values[j][7]);
+  free(tmp);
+
+  switch_B_i_j(B, i, j, k);
+
+
+}
+
+void switch_B_i_j(heap_t* B, uint32_t i, uint32_t j, int k){
+  // swap B[i].ids
+
+  uint32_t* tmp_ids = malloc(k * sizeof(uint32_t));
+  memcpy(tmp_ids, B[i].ids, sizeof(uint32_t)*k);
+  memcpy(B[i].ids, B[j].ids, sizeof(uint32_t)*k);
+  memcpy(B[j].ids, tmp_ids, sizeof(uint32_t)*k);
+
+  float* tmp_vals = malloc(k * sizeof(float));
+  memcpy(tmp_vals, B[i].vals, sizeof(float)*k);
+  memcpy(B[i].vals, B[j].vals, sizeof(float)*k);
+  memcpy(B[j].vals, tmp_vals, sizeof(float)*k);
+
+  bool* tmp_isnews = malloc(k * sizeof(bool));
+  memcpy(tmp_isnews, B[i].isnews, sizeof(bool)*k);
+  memcpy(B[i].isnews, B[j].isnews, sizeof(bool)*k);
+  memcpy(B[j].isnews, tmp_isnews, sizeof(bool)*k);
+
+
+  SWAP(B[i].rev_new, B[j].rev_new);
+  SWAP(B[i].rev_old, B[j].rev_old);
+  SWAP(B[i].fwd_new, B[j].fwd_new);
+  SWAP(B[i].fwd_old, B[j].fwd_old);
+  SWAP(B[i].size, B[j].size);
+
+  free(tmp_ids);
+  free(tmp_vals);
+  free(tmp_isnews);
+}
 
 int sample_reverse_union(vec_t* new, vec_t* old, heap_t* B, int max_candidates, int N) {
     // this function samples, reverses and does the union all at once
