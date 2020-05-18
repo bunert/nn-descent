@@ -54,13 +54,22 @@ void heap_check(heap_t* h, int i)
 }
 
 void read_data(char* filename, int N, int D, dataset_t* data) {
-    data->values = aligned_alloc(256, (sizeof(float*) * N) + (N * D * sizeof(float)));
+
+    // for memeory alignment purposes N has to be a multiple of 4
+    // this is because pointers have size 64 and we need 256 alignment
+    uint32_t n256 = N;
+    if (N % 4 != 0)
+    {
+        n256 += + (4 - (N % 4));
+    } 
+
+    data->values = aligned_alloc(256, (sizeof(float*) * n256) + (N * D * sizeof(float)));
     data->size = N;
     data->dim = D;
     FILE *fp;
     if ((fp = fopen(filename, "r+")) != NULL) {
         for (int i = 0; i < N; i++) {
-            data->values[i] = (float*)(data->values + N) + i * D;
+            data->values[i] = (float*)(data->values + n256) + i * D;
             for (int j = 0; j < D; j++) {
 
                 // returns 0 if we couldnt read float
@@ -73,6 +82,7 @@ void read_data(char* filename, int N, int D, dataset_t* data) {
         exit(1);
     }
 }
+
 
 void write_data(char* filename, int N, heap_t* result) {
     FILE *fp;
