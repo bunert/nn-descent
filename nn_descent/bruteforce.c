@@ -72,8 +72,8 @@ void nn_brute_force(float(*metric)(float*, float*, int), dataset_t data, update_
 
                 __m256 x0[8], x1[8], x2[8];
                 for (int l=0; l<8; l++) {
-                    x0[l] = _mm256_load_ps(&(data.values[u1_id[l]][k]));
-                    x1[l] = _mm256_load_ps(&(data.values[u2_id[l]][k]));
+                    x0[l] = _mm256_loadu_ps(&(data.values[u1_id[l]][k]));
+                    x1[l] = _mm256_loadu_ps(&(data.values[u2_id[l]][k]));
                     x2[l] = _mm256_sub_ps(x0[l], x1[l]);
                     acc[l] = _mm256_fmadd_ps(x2[l], x2[l], acc[l]);
                 }
