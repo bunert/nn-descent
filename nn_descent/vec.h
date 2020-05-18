@@ -11,7 +11,7 @@ typedef struct {
     // they're in flat arrays to allow future vectorization
 
     int size; // current number of nodes in arr
-    uint32_t *ids; 
+    uint32_t *ids;
     float *vals;
     bool *isnews;
     int rev_new;
@@ -35,3 +35,5 @@ void heap_free(heap_t*);
 void max_heapify(heap_t* h, int i);
 int heap_insert_bounded(heap_t* h, uint32_t id, float dist, bool isnew, int max_neighbors);
 int heap_find_by_index(heap_t*, uint32_t);
+
+int array_find_by_index(uint32_t* arr, uint32_t index, int size);

@@ -13,7 +13,7 @@
 
 #define FREQUENCY 2.7e9
 
-#define SWAP(x, y) {int tmp = x; x = y; y = tmp; }
+#define SWAP(x, y, T) {T tmp = x; x = y; y = tmp; }
 
 vec_t* vec_list_create(int size, int k)
 {
@@ -198,7 +198,7 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
        // reallocate data after first iteration
        if (iter==1){
-         reallocate_data(permutation, B, data, k);
+         // reallocate_data(permutation, B, data, k);
        }
 
        gettimeofday(&end, NULL);
@@ -209,11 +209,20 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     } while (c >= stop_iter);
 // assert(validate_connection_counters(B, data.size)==data.size*k*2);
 
+
+    // printf("done, cleaning up...\n");
+
+    // for (int i = 0; i < data.size; i++) {
+    //   printf("%d, ", permutation[i]);
+    // }
+    // printf("\n");
+    revert_permutation(permutation, B, data.size, k);
+    // for (int i = 0; i < data.size; i++) {
+    //   printf("%d, ", permutation[i]);
+    // }
+    // printf("\n");
+
     printf("NNDescent finished \n");
-
-    //printf("done, cleaning up...\n");
-
-    revert_permutation(permutation, B, k);
 
     free(old);
     free(new);
@@ -226,17 +235,55 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 }
 
 void reallocate_data(uint32_t* permutation, heap_t* B, dataset_t data, int k){
+  switch_i_j(permutation, B, data, 10, 11, k);
+  switch_i_j(permutation, B, data, 2, 6, k);
+  switch_i_j(permutation, B, data, 1, 5, k);
+  switch_i_j(permutation, B, data, 33, 23, k);
 
-  switch_i_j(B, data, 10, 11, k);
-  switch_i_j(B, data, 11, 10, k);
 
+  permute_ids(permutation, B, data.size);
 }
 
-void revert_permutation(uint32_t* permutation, heap_t* B, int k){
-
+void permute_ids(uint32_t* permutation, heap_t* B, int size){
+  for (int i = 0; i < size; i++) {
+    for (int j = 0; j < B[i].size; j++) {
+      if (permutation[B[i].ids[j]] != B[i].ids[j]){
+        int ind = array_find_by_index(permutation, B[i].ids[j], size);
+        B[i].ids[j] = ind;
+      }
+    }
+  }
 }
 
-void switch_i_j(heap_t* B, dataset_t data, uint32_t i, uint32_t j, int k){
+void revert_ids(uint32_t* permutation, heap_t* B, int size){
+  for (int i = 0; i < size; i++) {
+    for (int j = 0; j < B[i].size; j++) {
+      B[i].ids[j] = permutation[B[i].ids[j]];
+    }
+  }
+}
+
+
+// https://stackoverflow.com/questions/523861/permutation-of-a-vector
+// Since each swap operation puts at least one (of the two) elements
+// in the correct position, we need no more than N such swaps altogether.
+void revert_permutation(uint32_t* permutation, heap_t* B, int size, int k){
+  revert_ids(permutation, B, size);
+
+  for (uint32_t i = 0; i < size; i++) {
+    while (permutation[i] != i) {
+      // printf("i: %d\n", i);
+      uint32_t ind = permutation[i];
+      // printf("ind: %d\n", ind);
+      switch_B_i_j(B, i, ind, k);
+      SWAP(permutation[i], permutation[ind], uint32_t);
+    }
+  }
+}
+
+void switch_i_j(uint32_t* permutation, heap_t* B, dataset_t data, uint32_t i, uint32_t j, int k){
+  SWAP(permutation[i], permutation[j], uint32_t);
+
   // swap data.values[i] and data.values[j]
   // test1 just for assert
   float test1 = data.values[i][7];
@@ -254,7 +301,6 @@ void switch_i_j(heap_t* B, dataset_t data, uint32_t i, uint32_t j, int k){
 }
 
 void switch_B_i_j(heap_t* B, uint32_t i, uint32_t j, int k){
-  // swap B[i].ids
 
   uint32_t* tmp_ids = malloc(k * sizeof(uint32_t));
   memcpy(tmp_ids, B[i].ids, sizeof(uint32_t)*k);
@@ -272,11 +318,11 @@ void switch_B_i_j(heap_t* B, uint32_t i, uint32_t j, int k){
   memcpy(B[j].isnews, tmp_isnews, sizeof(bool)*k);
 
 
-  SWAP(B[i].rev_new, B[j].rev_new);
-  SWAP(B[i].rev_old, B[j].rev_old);
-  SWAP(B[i].fwd_new, B[j].fwd_new);
-  SWAP(B[i].fwd_old, B[j].fwd_old);
-  SWAP(B[i].size, B[j].size);
+  SWAP(B[i].rev_new, B[j].rev_new, int);
+  SWAP(B[i].rev_old, B[j].rev_old, int);
+  SWAP(B[i].fwd_new, B[j].fwd_new, int);
+  SWAP(B[i].fwd_old, B[j].fwd_old, int);
+  SWAP(B[i].size, B[j].size, int);
 
   free(tmp_ids);
   free(tmp_vals);

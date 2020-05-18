@@ -135,6 +135,13 @@ int heap_find_by_index(heap_t* h, uint32_t index)
     return -1;
 }
 
+int array_find_by_index(uint32_t* arr, uint32_t index, int size){
+  for (int i = 0; i < size; i++){
+    if (arr[i] == index) return i;
+  }
+  return -1;
+}
+
 void heap_free(heap_t* h) {
     if (h) {
         free(h->ids);
