@@ -117,7 +117,7 @@ void brute_force_new(float(*metric)(float*, float*, int), dataset_t data, update
                 updates->u[current_update] = ind[low];
                 updates->v[current_update] = ind[high];
                 updates->dist[current_update] = total_squared_l2;
-
+                DIST_EVAL();
                 array_position++;
             }
         }
@@ -170,6 +170,7 @@ void brute_force_new(float(*metric)(float*, float*, int), dataset_t data, update
                     updates->u[current_update] = ind[low];
                     updates->v[current_update] = ind[BLOCKSIZE + high];
                     updates->dist[current_update] = total_squared_l2;
+                    DIST_EVAL();
 
                 }
             }
