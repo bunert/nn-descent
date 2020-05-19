@@ -156,9 +156,12 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     struct timeval start, end;
 
     uint32_t* permutation = malloc(data.size * sizeof(uint32_t));
+    uint32_t* fwd_permutation = malloc(data.size * sizeof(uint32_t));
+
     // initialize perutation
     for (uint32_t n = 0; n < data.size; n++) {
       permutation[n] = n;
+      fwd_permutation[n] = n;
     }
 
     do {
@@ -198,7 +201,7 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
        // reallocate data after first iteration
        if (iter==1){
-         // reallocate_data(permutation, B, data, k);
+         reallocate_data(permutation, fwd_permutation, B, data, k);
        }
 
        gettimeofday(&end, NULL);
@@ -212,15 +215,7 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
     // printf("done, cleaning up...\n");
 
-    // for (int i = 0; i < data.size; i++) {
-    //   printf("%d, ", permutation[i]);
-    // }
-    // printf("\n");
     revert_permutation(permutation, B, data.size, k);
-    // for (int i = 0; i < data.size; i++) {
-    //   printf("%d, ", permutation[i]);
-    // }
-    // printf("\n");
 
     printf("NNDescent finished \n");
 
@@ -234,11 +229,27 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     return B;
 }
 
-void reallocate_data(uint32_t* permutation, heap_t* B, dataset_t data, int k){
-  switch_i_j(permutation, B, data, 10, 11, k);
-  switch_i_j(permutation, B, data, 2, 6, k);
-  switch_i_j(permutation, B, data, 1, 5, k);
-  switch_i_j(permutation, B, data, 33, 23, k);
+void reallocate_data(uint32_t* permutation, uint32_t* fwd_permutation, heap_t* B, dataset_t data, int k){
+  switch_i_j(permutation,fwd_permutation, B, data, 1, 4, k);
+  // assert(permutation[1]==2);
+  switch_i_j(permutation,fwd_permutation, B, data, 1, 3, k);
+  switch_i_j(permutation,fwd_permutation, B, data, 1, 2, k);
+  for (int l=0; l<2000; l++) {
+    uint32_t i = rand()%data.size;
+    uint32_t j = rand()%data.size;
+    if (i==j) continue;
+    switch_i_j(permutation,fwd_permutation, B, data, i, j, k);
+    for (int k=0; k<data.size; k++) {
+      assert(fwd_permutation[permutation[k]]==k);
+    }
+    printf("%d %d\n", i, j);
+  }
+  // assert(permutation[1]==2);
+  // assert(permutation[2]==1);
+  // switch_i_j(permutation, B, data, 33, 10, k);
+  // switch_i_j(permutation, B, data, 11, 12, k);
+  // switch_i_j(permutation, B, data, 12, 10, k);
+
 
 
   permute_ids(permutation, B, data.size);
@@ -281,18 +292,18 @@ void revert_permutation(uint32_t* permutation, heap_t* B, int size, int k){
   }
 }
 
-void switch_i_j(uint32_t* permutation, heap_t* B, dataset_t data, uint32_t i, uint32_t j, int k){
+void switch_i_j(uint32_t* permutation, uint32_t* fwd_permutation, heap_t* B, dataset_t data, uint32_t i, uint32_t j, int k){
+  SWAP(fwd_permutation[permutation[i]], fwd_permutation[permutation[j]], uint32_t);
   SWAP(permutation[i], permutation[j], uint32_t);
 
+
+
   // swap data.values[i] and data.values[j]
-  // test1 just for assert
-  float test1 = data.values[i][7];
 
   float* tmp = malloc(data.dim * sizeof(float));
   memcpy(tmp, data.values[i], sizeof(float)*data.dim );
   memcpy(data.values[i], data.values[j], sizeof(float)*data.dim );
   memcpy(data.values[j], tmp, sizeof(float)*data.dim );
-  assert(test1 == data.values[j][7]);
   free(tmp);
 
   switch_B_i_j(B, i, j, k);
