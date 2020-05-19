@@ -1,0 +1,15 @@
+# Presentation
+- Algorithm [2min] (Jonas)
+-- motivation [n^2 vs n^1.14]
+-- main bottleneck (random access pattern)
+-- only present intuition of algorithm relevant for presentation
+- Sampling [3min] (Dan)
+-- naive -> pynndescent -> turbosampling
+- Order of input data [3min] (Tobi)
+-- Improvements by locality (sorted MNIST, clustered dataset)
+-- experiments (sorted MNIST, clustered dataset)
+-- cachegrind
+-- heuristic to reorder data in memory
+- L2 [2min] (Sam draft)
+-- intrinsics, blocking etc.
+-- memory alignement (loadu/load)
