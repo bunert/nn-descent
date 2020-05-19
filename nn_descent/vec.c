@@ -48,6 +48,32 @@ void vec_insert_bounded(vec_t* h, uint32_t id, int max_candidates) {
     h->size++;
 }
 
+
+void vec_sort(vec_t* h)
+{
+    // sort the ids list inplace in ascending order
+    // insertion sort. should be at most 50 elements?
+
+
+    int size = h->size;
+    uint32_t* indices = h->ids;
+
+    for(int i=1; i<size; i++){
+        int j = i - 1;
+        
+        uint32_t current_element = indices[i];
+        while(j>=0 && indices[j] > current_element){
+            // shift the larger elements right
+            indices[j+1] = indices[j];
+            j--;
+        }
+        indices[j+1] = current_element;
+    }
+}
+
+
+
+
 // logically remove all elements from the heap
 void heap_clear(heap_t* v) { if (v) v->size = 0; }
 

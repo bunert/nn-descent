@@ -21,6 +21,8 @@ void sim_eval() {
 #else
 #define DIST_EVAL() true
 #endif
+
+#define BLOCKSIZE 8
  
 inline float single_l2(float* v1, float* v2, int d)
 {
@@ -42,19 +44,176 @@ inline float single_l2(float* v1, float* v2, int d)
     return acc+acc2+acc3+acc4;
 }
  
+void brute_force_new(float(*metric)(float*, float*, int), dataset_t data, update_t* updates, vec_t *vec_a)
+{
+    int vec_a_size = vec_a->size;
+    //printf("%d", vec_a_size);
 
+    // if(vec_a_size % BLOCKSIZE != 0){
+    // // if(vec_a_size < 5){
+    //   nn_brute_force(metric, data, updates, vec_a, vec_a);
+    //   return;
+    // }
+
+    // number of updates that will be performed
+    int new_updates = vec_a_size * (vec_a_size - 1) / 2;
+
+    float** data_values = data.values;
+    int data_dim = data.dim;
+
+    // unroll 5
+    int blocks = vec_a_size / BLOCKSIZE;
+
+    for(int outer = 0; outer < blocks; outer++){
+
+        // only need 5 in the triangular part
+        __m256 vector_parts[2* BLOCKSIZE]; 
+
+        //only need 10 in the triangular part
+        __m256 accs[BLOCKSIZE * BLOCKSIZE];
+        
+        // compute the triangular part
+
+        // in the upper triangular part for 5x5 there are 5 (5-1) / 2 = 10 combinations
+        for(int k = 0; k < BLOCKSIZE * BLOCKSIZE; k++){
+            accs[k] = _mm256_setzero_ps();
+        }
+
+        uint32_t ind[2 * BLOCKSIZE];
+
+        for(int k = 0; k < BLOCKSIZE;k++){
+            ind[k] = vec_a->ids[outer* BLOCKSIZE + k];
+        }
+
+        for(int l = 0; l < data_dim; l+= 8){
+            for (int k = 0; k < BLOCKSIZE; k++){
+                vector_parts[k] = _mm256_loadu_ps(&(data_values[ind[k]][l]));
+            }
+
+            int array_position = 0;
+            for(int low = 0; low < BLOCKSIZE - 1; low++){
+                for(int high = low + 1; high < BLOCKSIZE; high++){
+                    __m256 difference = _mm256_sub_ps(vector_parts[low], vector_parts[high]);
+                    // accs[array_position] = _mm256_fmadd_ps(difference, difference, accs[array_position]);
+                    accs[low * BLOCKSIZE + high] = _mm256_fmadd_ps(difference, difference, accs[low * BLOCKSIZE + high]);
+                    array_position++;
+                }
+            }    
+        }
+
+        int updates_base = updates->size;
+        int array_position = 0;
+        for(int low = 0; low < BLOCKSIZE - 1; low++){
+            for(int high = low + 1; high < BLOCKSIZE; high++){
+                float total_squared_l2 = 0;
+                for(int k = 0; k < 8; k++){
+                    // total_squared_l2 += accs[array_position][k];
+                    total_squared_l2 += accs[low * BLOCKSIZE + high][k];
+                }
+                //int current_update = updates_base + array_position;
+                // updates->u[current_update] = ind[outer*5 + low];
+                // updates->v[current_update] = ind[outer*5 + high];
+                int current_update = updates_base + array_position;
+                updates->u[current_update] = ind[low];
+                updates->v[current_update] = ind[high];
+                updates->dist[current_update] = total_squared_l2;
+
+                array_position++;
+            }
+        }
+
+        updates->size += 2 * BLOCKSIZE; // added 10 new updates
+
+        
+        // compute the other blocks of 'outer' row which are no longer triangular__
+        for(int inner = outer + 1; inner < blocks; inner++){
+            for(int k = 0; k < BLOCKSIZE * BLOCKSIZE; k++){
+                accs[k] = _mm256_setzero_ps();
+            }
+
+            for(int k = 0; k < BLOCKSIZE; k++){
+                ind[k + BLOCKSIZE ] = vec_a->ids[inner* BLOCKSIZE + k];
+            }
+
+            for(int l = 0; l < data_dim; l+= 8){
+                // load the vectors of the y axis and the x axis
+                for (int k = 0; k < 2 * BLOCKSIZE; k++){
+                    vector_parts[k] = _mm256_loadu_ps(&(data_values[ind[k]][l]));
+                    //vector_parts[k] = _mm256_setzero_ps();
+                }
+
+                // //load the vectors of the x axis
+                // for (int k = 5; k < 10; k++){
+                //     vector_parts[k] = _mm256_loadu_ps(&(data_values[ind[k]][l]));
+                //     // vector_parts[k] = _mm256_setzero_ps();
+                // }
+
+                
+                for(int low = 0; low < BLOCKSIZE; low++){
+                    for(int high = 0; high < BLOCKSIZE; high++){
+                        __m256 difference = _mm256_sub_ps(vector_parts[low], vector_parts[BLOCKSIZE + high]);
+                        accs[low * BLOCKSIZE + high] = _mm256_fmadd_ps(difference, difference, accs[low * BLOCKSIZE + high]);
+                    }
+                }    
+            }
+
+            updates_base = updates->size;
+            for(int low = 0; low < BLOCKSIZE; low++){
+                for(int high = 0; high < BLOCKSIZE; high++){
+                    float total_squared_l2 = 0;
+                    for(int k = 0; k < 8; k++){
+                        total_squared_l2 += accs[low * BLOCKSIZE + high][k];
+                    }
+                    int current_update = updates_base + low * BLOCKSIZE + high;
+                    // updates->u[current_update] = vec_a->ids[outer*5 + low];
+                    // updates->v[current_update] = vec_a->ids[inner*5 + high];
+                    updates->u[current_update] = ind[low];
+                    updates->v[current_update] = ind[BLOCKSIZE + high];
+                    updates->dist[current_update] = total_squared_l2;
+
+                }
+            }
+
+            updates->size += BLOCKSIZE * BLOCKSIZE; // added 25 new updates
+            
+        }
+    }
+
+    if(vec_a_size % BLOCKSIZE != 0){
+    // if(vec_a_size < 5){
+        vec_t remainder;
+        remainder.ids = (uint32_t*) malloc(sizeof(uint32_t) * BLOCKSIZE);
+        
+        int remaining_elements  = vec_a_size % BLOCKSIZE;
+        // for(int i= vec_a_size / BLOCKSIZE; i < vec_a_size; i++){
+        for(int i= 0; i < remaining_elements; i++){
+            remainder.ids[i] = vec_a->ids[vec_a_size - remaining_elements + i];
+        }
+
+        remainder.size = remaining_elements;
+        nn_brute_force(metric, data, updates, &remainder, vec_a);
+
+        free(remainder.ids);
+    }
+
+
+}
 
 void nn_brute_force(float(*metric)(float*, float*, int), dataset_t data, update_t* updates, vec_t *vec_a, vec_t *vec_b){
     uint32_t u1_id[8];
     uint32_t u2_id[8];
     int agg_cnt=0;
 
-    for (int i = 0; i < vec_a->size; i++) {
+    int vec_a_size = vec_a->size;
+    int vec_b_size = vec_b->size;
+
+
+    for (int i = 0; i < vec_a_size; i++) {
 
 
         // if they match, can only do upper triangle due to symmetry of euclidean distance
         int start = (vec_a == vec_b) ? 0 : 0;
-        for (int j = start; j < vec_b->size; j++) {
+        for (int j = start; j < vec_b_size; j++) {
             if (vec_a->ids[i] <= vec_b->ids[j]) continue; 
             u1_id[agg_cnt] = vec_a->ids[i];
             u2_id[agg_cnt] = vec_b->ids[j];
@@ -67,6 +226,7 @@ void nn_brute_force(float(*metric)(float*, float*, int), dataset_t data, update_
             for (int l=0; l<8; l++) {
                 acc[l] = _mm256_setzero_ps();
             }
+
 
             for (int k=0; k < data.dim; k+=8) {
 
