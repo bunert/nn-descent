@@ -157,8 +157,13 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
             // brute force algorithm to solve KNN:
             // for new[v] x new[v]
             // for new[v] x old[v]
-            nn_brute_force(metric, data, &updates, &new[v], &new[v]);
+            // vec_sort(&old[v]);
+            vec_sort(&new[v]);
+            brute_force_new(metric, data, &updates, &new[v]);
             nn_brute_force(metric, data, &updates, &new[v], &old[v]);
+            // nn_brute_force(metric, data, &updates, &new[v], &new[v]);
+            
+            
 
             // we will create at most m_c*m_c*2 updates in the next iteration
             // if theres enough space we do not need to perform the updates yet
