@@ -26,8 +26,8 @@ int update_nn(heap_t*, int, float);
 int reverse_heap_list(heap_t*, heap_t*, int);
 int validate_connection_counters(heap_t* B, int N);
 
-void reallocate_data(uint32_t* permutation,uint32_t* fwd_permutation, heap_t* B, dataset_t data, int k);
+void reallocate_data(uint32_t* bwd_permutation, uint32_t* fwd_permutation, heap_t* B, dataset_t data, int k);
 void revert_permutation(uint32_t* permutation, heap_t* B, int size, int k);
 void permute_ids(uint32_t* permutation, heap_t* B, int size);
-void switch_i_j(uint32_t* permutation, uint32_t* fwd_permutation, heap_t* B, dataset_t data, uint32_t i, uint32_t j, int k);
+void switch_i_j(uint32_t* bwd_permutation, uint32_t* fwd_permutation, heap_t* B, dataset_t data, uint32_t i, uint32_t j, int k);
 void switch_B_i_j(heap_t* B, uint32_t i, uint32_t j, int k);

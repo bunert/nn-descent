@@ -155,12 +155,12 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     int iter = 1;
     struct timeval start, end;
 
-    uint32_t* permutation = malloc(data.size * sizeof(uint32_t));
+    uint32_t* bwd_permutation = malloc(data.size * sizeof(uint32_t));
     uint32_t* fwd_permutation = malloc(data.size * sizeof(uint32_t));
 
     // initialize perutation
     for (uint32_t n = 0; n < data.size; n++) {
-      permutation[n] = n;
+      bwd_permutation[n] = n;
       fwd_permutation[n] = n;
     }
 
@@ -201,7 +201,7 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
        // reallocate data after first iteration
        if (iter==1){
-         reallocate_data(permutation, fwd_permutation, B, data, k);
+         reallocate_data(bwd_permutation, fwd_permutation, B, data, k);
        }
 
        gettimeofday(&end, NULL);
@@ -215,7 +215,7 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
     // printf("done, cleaning up...\n");
 
-    revert_permutation(permutation, B, data.size, k);
+    revert_permutation(bwd_permutation, B, data.size, k);
 
     printf("NNDescent finished \n");
 
@@ -224,49 +224,32 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     free(updates.u);
     free(updates.v);
     free(updates.dist);
-    free(permutation);
+    free(bwd_permutation);
+    free(fwd_permutation);
 
     return B;
 }
 
-void reallocate_data(uint32_t* permutation, uint32_t* fwd_permutation, heap_t* B, dataset_t data, int k){
-  switch_i_j(permutation,fwd_permutation, B, data, 1, 4, k);
-  // assert(permutation[1]==2);
-  switch_i_j(permutation,fwd_permutation, B, data, 1, 3, k);
-  switch_i_j(permutation,fwd_permutation, B, data, 1, 2, k);
+// heuristic approach for reordering
+void reallocate_data(uint32_t* bwd_permutation, uint32_t* fwd_permutation, heap_t* B, dataset_t data, int k){
+
+  // permute ranom and test if we get the identity permutation
+  // by applying the backwards first and then the forward permutation
   for (int l=0; l<2000; l++) {
     uint32_t i = rand()%data.size;
     uint32_t j = rand()%data.size;
     if (i==j) continue;
-    switch_i_j(permutation,fwd_permutation, B, data, i, j, k);
+    switch_i_j(bwd_permutation,fwd_permutation, B, data, i, j, k);
     for (int k=0; k<data.size; k++) {
-      assert(fwd_permutation[permutation[k]]==k);
+      assert(fwd_permutation[bwd_permutation[k]]==k);
     }
-    printf("%d %d\n", i, j);
+    // printf("%d %d\n", i, j);
   }
-  // assert(permutation[1]==2);
-  // assert(permutation[2]==1);
-  // switch_i_j(permutation, B, data, 33, 10, k);
-  // switch_i_j(permutation, B, data, 11, 12, k);
-  // switch_i_j(permutation, B, data, 12, 10, k);
 
-
-
-  permute_ids(permutation, B, data.size);
+  permute_ids(fwd_permutation, B, data.size);
 }
 
 void permute_ids(uint32_t* permutation, heap_t* B, int size){
-  for (int i = 0; i < size; i++) {
-    for (int j = 0; j < B[i].size; j++) {
-      if (permutation[B[i].ids[j]] != B[i].ids[j]){
-        int ind = array_find_by_index(permutation, B[i].ids[j], size);
-        B[i].ids[j] = ind;
-      }
-    }
-  }
-}
-
-void revert_ids(uint32_t* permutation, heap_t* B, int size){
   for (int i = 0; i < size; i++) {
     for (int j = 0; j < B[i].size; j++) {
       B[i].ids[j] = permutation[B[i].ids[j]];
@@ -279,7 +262,7 @@ void revert_ids(uint32_t* permutation, heap_t* B, int size){
 // Since each swap operation puts at least one (of the two) elements
 // in the correct position, we need no more than N such swaps altogether.
 void revert_permutation(uint32_t* permutation, heap_t* B, int size, int k){
-  revert_ids(permutation, B, size);
+  permute_ids(permutation, B, size);
 
   for (uint32_t i = 0; i < size; i++) {
     while (permutation[i] != i) {
@@ -292,11 +275,10 @@ void revert_permutation(uint32_t* permutation, heap_t* B, int size, int k){
   }
 }
 
-void switch_i_j(uint32_t* permutation, uint32_t* fwd_permutation, heap_t* B, dataset_t data, uint32_t i, uint32_t j, int k){
-  SWAP(fwd_permutation[permutation[i]], fwd_permutation[permutation[j]], uint32_t);
-  SWAP(permutation[i], permutation[j], uint32_t);
 
-
+void switch_i_j(uint32_t* bwd_permutation, uint32_t* fwd_permutation, heap_t* B, dataset_t data, uint32_t i, uint32_t j, int k){
+  SWAP(fwd_permutation[bwd_permutation[i]], fwd_permutation[bwd_permutation[j]], uint32_t);
+  SWAP(bwd_permutation[i], bwd_permutation[j], uint32_t);
 
   // swap data.values[i] and data.values[j]
 
