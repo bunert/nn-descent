@@ -22,7 +22,8 @@ void sim_eval() {
 #define DIST_EVAL() true
 #endif
 
-#define BLOCKSIZE 8
+#define BLOCKSIZE 5
+#define MAX_CANDIDATES 50
  
 inline float single_l2(float* v1, float* v2, int d)
 {
@@ -118,6 +119,7 @@ void brute_force_new(float(*metric)(float*, float*, int), dataset_t data, update
                 updates->v[current_update] = ind[high];
                 updates->dist[current_update] = total_squared_l2;
                 DIST_EVAL();
+
                 array_position++;
             }
         }
@@ -134,6 +136,242 @@ void brute_force_new(float(*metric)(float*, float*, int), dataset_t data, update
             for(int k = 0; k < BLOCKSIZE; k++){
                 ind[k + BLOCKSIZE ] = vec_a->ids[inner* BLOCKSIZE + k];
             }
+
+            for(int l = 0; l < data_dim; l+= 8){
+                // load the vectors of the y axis and the x axis
+                for (int k = 0; k < 2 * BLOCKSIZE; k++){
+                    vector_parts[k] = _mm256_loadu_ps(&(data_values[ind[k]][l]));
+                    //vector_parts[k] = _mm256_setzero_ps();
+                }
+
+                // //load the vectors of the x axis
+                // for (int k = 5; k < 10; k++){
+                //     vector_parts[k] = _mm256_loadu_ps(&(data_values[ind[k]][l]));
+                //     // vector_parts[k] = _mm256_setzero_ps();
+                // }
+
+                
+                for(int low = 0; low < BLOCKSIZE; low++){
+                    for(int high = 0; high < BLOCKSIZE; high++){
+                        __m256 difference = _mm256_sub_ps(vector_parts[low], vector_parts[BLOCKSIZE + high]);
+                        accs[low * BLOCKSIZE + high] = _mm256_fmadd_ps(difference, difference, accs[low * BLOCKSIZE + high]);
+                    }
+                }    
+            }
+
+            updates_base = updates->size;
+            for(int low = 0; low < BLOCKSIZE; low++){
+                for(int high = 0; high < BLOCKSIZE; high++){
+                    float total_squared_l2 = 0;
+                    for(int k = 0; k < 8; k++){
+                        total_squared_l2 += accs[low * BLOCKSIZE + high][k];
+                    }
+                    int current_update = updates_base + low * BLOCKSIZE + high;
+                    // updates->u[current_update] = vec_a->ids[outer*5 + low];
+                    // updates->v[current_update] = vec_a->ids[inner*5 + high];
+                    updates->u[current_update] = ind[low];
+                    updates->v[current_update] = ind[BLOCKSIZE + high];
+                    updates->dist[current_update] = total_squared_l2;
+                    DIST_EVAL();
+
+                }
+            }
+
+            updates->size += BLOCKSIZE * BLOCKSIZE; // added 25 new updates
+            
+        }
+    }
+
+    if(vec_a_size % BLOCKSIZE != 0){
+    // if(vec_a_size < 5){
+        vec_t remainder;
+        remainder.ids = (uint32_t*) malloc(sizeof(uint32_t) * BLOCKSIZE);
+        
+        int remaining_elements  = vec_a_size % BLOCKSIZE;
+        // for(int i= vec_a_size / BLOCKSIZE; i < vec_a_size; i++){
+        for(int i= 0; i < remaining_elements; i++){
+            remainder.ids[i] = vec_a->ids[vec_a_size - remaining_elements + i];
+        }
+
+        remainder.size = remaining_elements;
+        nn_brute_force(metric, data, updates, &remainder, vec_a);
+
+        free(remainder.ids);
+    }
+
+
+}
+
+void brute_force_new_unblocked(float(*metric)(float*, float*, int), dataset_t data, update_t* updates, vec_t *vec_a)
+{
+    int vec_a_size = vec_a->size;
+    //printf("%d", vec_a_size);
+
+    // if(vec_a_size % BLOCKSIZE != 0){
+    // // if(vec_a_size < 5){
+    //   nn_brute_force(metric, data, updates, vec_a, vec_a);
+    //   return;
+    // }
+
+    // number of updates that will be performed
+    int new_updates = vec_a_size * (vec_a_size - 1) / 2;
+
+    float** data_values = data.values;
+    int data_dim = data.dim;
+
+    // unroll 5
+    int blocks = vec_a_size / BLOCKSIZE;
+
+    __m256 vector_parts[2* MAX_CANDIDATES]; 
+
+    //only need 10 in the triangular part
+    __m256 accs[MAX_CANDIDATES * MAX_CANDIDATES];
+        
+        // compute the triangular part
+
+    // in the upper triangular part for 5x5 there are 5 (5-1) / 2 = 10 combinations
+    for(int k = 0; k < MAX_CANDIDATES * MAX_CANDIDATES; k++){
+        accs[k] = _mm256_setzero_ps();
+    }
+
+    uint32_t ind[MAX_CANDIDATES];
+
+    for(int k = 0; k < vec_a_size;k++){
+        ind[k] = vec_a->ids[k];
+    }
+
+    for(int l = 0; l < data_dim; l+= 8){
+        for (int k = 0; k < vec_a_size; k++){
+            vector_parts[k] = _mm256_loadu_ps(&(data_values[ind[k]][l]));
+        }
+
+        int array_position = 0;
+        for(int low = 0; low < vec_a_size - 1; low++){
+            for(int high = low + 1; high < vec_a_size; high++){
+                __m256 difference = _mm256_sub_ps(vector_parts[low], vector_parts[high]);
+                // accs[array_position] = _mm256_fmadd_ps(difference, difference, accs[array_position]);
+                accs[low * vec_a_size + high] = _mm256_fmadd_ps(difference, difference, accs[low * vec_a_size + high]);
+                array_position++;
+            }
+        }    
+    }
+
+    int updates_base = updates->size;
+    int array_position = 0;
+    for(int low = 0; low < vec_a_size - 1; low++){
+        for(int high = low + 1; high < vec_a_size; high++){
+            float total_squared_l2 = 0;
+            for(int k = 0; k < 8; k++){
+                // total_squared_l2 += accs[array_position][k];
+                total_squared_l2 += accs[low * vec_a_size + high][k];
+            }
+            //int current_update = updates_base + array_position;
+            // updates->u[current_update] = ind[outer*5 + low];
+            // updates->v[current_update] = ind[outer*5 + high];
+            int current_update = updates_base + array_position;
+            updates->u[current_update] = ind[low];
+            updates->v[current_update] = ind[high];
+            updates->dist[current_update] = total_squared_l2;
+
+            DIST_EVAL();
+            array_position++;
+        }
+    }
+
+    updates->size += array_position; // added 10 new updates
+
+
+
+}
+
+
+void brute_force_new_old(float(*metric)(float*, float*, int), dataset_t data, update_t* updates, vec_t *vec_a, vec_t *vec_b)
+{
+    // vec_a is new and vec_b is old. if vec_b == NULL do the version for new x new
+
+    int vec_a_size = vec_a->size;
+    int vec_b_size = vec_b->size;
+
+
+    float** data_values = data.values;
+    int data_dim = data.dim;
+
+
+
+    uint32_t a_indices[50];
+    uint32_t b_indices[50];
+
+    for(int i = 0; i < vec_a_size; i++){
+        a_indices[i] = vec_a->ids[i];
+
+    }
+
+    for(int i = 0; i < vec_b_size; i++){
+        b_indices[i] = vec_b->ids[i];
+    }
+
+    __m256 accs[MAX_CANDIDATES * MAX_CANDIDATES];
+
+    for(int i = 0; i < MAX_CANDIDATES * MAX_CANDIDATES; i++){
+        accs[i] = _mm256_setzero_ps();
+    }
+
+
+    for(int l = 0; l < data_dim; l+=8){
+
+        __m256 a_data[MAX_CANDIDATES];
+        for(int a_index = 0; a_index < vec_a_size; a_index++){
+            a_data[a_index] = _mm256_loadu_ps(&(data_values[a_indices[a_index]][l]));
+        }
+
+        __m256 b_data[MAX_CANDIDATES];
+        for(int b_index = 0; b_index < vec_b_size; b_index++){
+            b_data[b_index] = _mm256_loadu_ps(&(data_values[b_indices[b_index]][l]));
+        }
+        
+        for(int a_index = 0; a_index < vec_a_size; a_index++)
+        {
+            
+            for(int b_index = 0; b_index < vec_b_size; b_index++){
+                __m256 difference = _mm256_sub_ps(a_data[a_index], b_data[b_index]);
+                // accs[array_position] = _mm256_fmadd_ps(difference, difference, accs[array_position]);
+                accs[a_index * MAX_CANDIDATES + b_index] = _mm256_fmadd_ps(difference, difference, accs[a_index * MAX_CANDIDATES + b_index]);
+            }
+        }
+    }
+
+    int updates_base = updates->size;
+    int performed_updates = 0;
+    for(int a_index  =0; a_index < vec_a_size; a_index++){
+        uint32_t a_vertex = a_indices[a_index];
+        for(int b_index = 0; b_index < vec_b_size; b_index++){
+            // because we evaluated the distance even if the indices match
+            DIST_EVAL();
+            if(a_vertex == b_indices[b_index]) continue;
+            performed_updates++;
+            float distance = 0;
+            for(int l = 0; l < data_dim; l++){
+                distance += accs[a_index * MAX_CANDIDATES + b_index][l];
+            }
+
+
+            int current_update = updates_base + performed_updates;
+            // updates->u[current_update] = vec_a->ids[outer*5 + low];
+            // updates->v[current_update] = vec_a->ids[inner*5 + high];
+            updates->u[current_update] = a_indices[a_index];
+            updates->v[current_update] = b_indices[b_index];
+            updates->dist[current_update] = distance;
+
+
+
+
+        } 
+    }
+
+    updates->size += performed_updates;
+
+
+}
 
             for(int l = 0; l < data_dim; l+= 8){
                 // load the vectors of the y axis and the x axis
