@@ -1,4 +1,5 @@
 import numpy as np
+import sklearn.metrics.pairwise
 from pathlib import Path
 import urllib.request
 import pandas as pd
@@ -8,6 +9,10 @@ def get_dataset(data_name, n, dim):
         # n datapoints sampled from each of dim gaussians centered around canonical basis vector with dimension dim
         n = 1000 if n is None else n
         return GaussianDataset(dimension=dim, variance=2.0, n=n)
+    elif data_name == 'clustered':
+        # n datapoints sampled from each of dim gaussians centered around canonical basis vector with dimension dim
+        n = 1000 if n is None else n
+        return ClusteredDataset(dimension=8, n=n, clusters=dim)
     elif data_name == 'audio':
         # Audio dataset as described in the NN-Descent publication
         #  54,387 points (192 dimensional)
@@ -18,9 +23,9 @@ def get_dataset(data_name, n, dim):
         return AudioDataset(n)
     elif data_name == 'mnist' or data_name == 'digits':
         # MNIST dataset of 70k handwritten digits (784 dimensional)
-    
+
         mnist_filenames = ["mnist_train.csv","mnist_test.csv"]
-    
+
         for csv_file in mnist_filenames:
             if not Path(csv_file).is_file():
                 print("downloading " + csv_file)
@@ -40,6 +45,39 @@ class Dataset:
     def save(self, filename):
         # save dataset to space separated values file
         np.savetxt(filename, self.X)
+
+class ClusteredDataset(Dataset):
+    def __init__(self, dimension, clusters, n):
+        print("Dimension",dimension, ", clusters:", clusters, ", n:",n)
+        # n=total points, equally distributed on clusters. each point has dimension dimensions
+
+        def min_dist(mean_matrix):
+            curr_min = np.inf
+            c = sklearn.metrics.pairwise_distances(mean_matrix, mean_matrix)
+            np.fill_diagonal(c, np.inf)
+            print(c.min())
+            return c.min()
+
+        # find separate cluster means
+        separate_cluster_means = False
+        means = []
+        while not separate_cluster_means:
+            print("generating means")
+            means = np.array([np.random.randint(0,1000000)*(np.random.rand(dimension)-np.repeat(0.5, dimension)) for i in range(clusters)])
+            if min_dist(means)>1000:
+                separate_cluster_means = True
+
+        cov = 10 * np.identity(dimension)
+        X = []
+        for i in range(clusters):
+            mean = np.zeros(dimension)
+            X.append(np.random.multivariate_normal(means[i], cov, n//clusters))
+        X = np.vstack(X)
+        np.random.shuffle(X)
+        print("shuffled")
+        print("done with dataset")
+        Dataset.__init__(self, X)
+
 
 class GaussianDataset(Dataset):
     def __init__(self, dimension, variance, n):
