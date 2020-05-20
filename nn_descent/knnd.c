@@ -232,21 +232,92 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
 // heuristic approach for reordering
 void reallocate_data(uint32_t* bwd_permutation, uint32_t* fwd_permutation, heap_t* B, dataset_t data, int k){
-
   // permute ranom and test if we get the identity permutation
   // by applying the backwards first and then the forward permutation
-  for (int l=0; l<2000; l++) {
-    uint32_t i = rand()%data.size;
-    uint32_t j = rand()%data.size;
-    if (i==j) continue;
-    switch_i_j(bwd_permutation,fwd_permutation, B, data, i, j, k);
-    for (int k=0; k<data.size; k++) {
-      assert(fwd_permutation[bwd_permutation[k]]==k);
+  // for (int l=0; l<2000; l++) {
+  //   uint32_t i = rand()%data.size;
+  //   uint32_t j = rand()%data.size;
+  //   if (i==j) continue;
+  //   uint32_t tmp = bwd_permutation[i];
+  //   switch_i_j(bwd_permutation,fwd_permutation, B, data, i, j, k);
+  //   assert(tmp == bwd_permutation[j]);
+  //   for (int k=0; k<data.size; k++) {
+  //     assert(fwd_permutation[bwd_permutation[k]]==k);
+  //   }
+  //   // printf("%d %d\n", i, j);
+  // }
+  // SORT
+
+
+  for (int i=0; i<data.size; i++) {
+
+    // SORT
+    float* tmp_vals = malloc(k * sizeof(float));
+    memcpy(tmp_vals, B[i].vals, sizeof(float)*k);
+
+    uint32_t* tmp_ids = malloc(k * sizeof(uint32_t));
+    memcpy(tmp_ids, B[i].ids, sizeof(uint32_t)*k);
+
+    quickSort(tmp_vals, tmp_ids, 0, (B[i].size-1));
+
+    for (int j=0; j<B[i].size; j++) {
+      // k= j-th smallest element in B[i]
+      // if fwd_permutation[k] > i+1
+
+      // if (fwd_permutation[tmp_ids[j]] > i+1){
+      //
+      // }
+      //  switch, break loop
     }
-    // printf("%d %d\n", i, j);
+    // no switch, leave i+1 where it is
   }
 
-  permute_ids(fwd_permutation, B, data.size);
+  // permute_ids(fwd_permutation, B, data.size);
+}
+
+
+// quicksort: https://www.geeksforgeeks.org/quick-sort/
+/* This function takes last element as pivot, places
+   the pivot element at its correct position in sorted
+    array, and places all smaller (smaller than pivot)
+   to left of pivot and all greater elements to right
+   of pivot */
+int partition (float* vals, uint32_t* ids, int low, int high)
+{
+    float pivot = vals[high];    // pivot
+    int i = (low - 1);  // Index of smaller element
+
+    for (int j = low; j <= high- 1; j++)
+    {
+        // If current element is smaller than the pivot
+        if (vals[j] < pivot)
+        {
+            i++;    // increment index of smaller element
+            SWAP(vals[i], vals[j], float);
+            SWAP(ids[i], ids[j], uint32_t);
+        }
+    }
+    SWAP(vals[i + 1], vals[high], float);
+    return (i + 1);
+}
+
+/* The main function that implements QuickSort
+ arr[] --> Array to be sorted,
+  low  --> Starting index,
+  high  --> Ending index */
+void quickSort(float* vals, uint32_t* ids, int low, int high)
+{
+    if (low < high)
+    {
+        /* pi is partitioning index, arr[p] is now
+           at right place */
+        int pi = partition(vals, ids, low, high);
+
+        // Separately sort elements before
+        // partition and after partition
+        quickSort(vals, ids, low, pi - 1);
+        quickSort(vals, ids, pi + 1, high);
+    }
 }
 
 void permute_ids(uint32_t* permutation, heap_t* B, int size){
