@@ -71,7 +71,7 @@ def c_nearest_neighbors(directory, dataset, K, metric, repetition, stdout=False,
     if gprof_compile:
         process = subprocess.run(['gcc'] + files + flags + ['-pg', '-DINSTR=true'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
     else:
-        process = subprocess.run(['gcc'] + files + flags + ['-DCALIBRATE'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
+        process = subprocess.run(['gcc'] + files + flags + ['-flto', '-DCALIBRATE'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
 
     if metric != 'l2':
         raise ValueError(metric + ' not implemented')

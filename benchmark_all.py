@@ -12,7 +12,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-r','--repetitions', help='repetitions', default=1, type=int)
     parser.add_argument('-k', help='k', default=20, type=int)
-    parser.add_argument('-dim', help='dimension of space', default=100, type=int)
+    parser.add_argument('-dim', help='dimension of space', default=128, type=int)
     parser.add_argument('-m', '--metric', help='l2', default='l2')
     parser.add_argument('-ns', '--nstart', help='logn start', default=8, type=int)
     parser.add_argument('-ne', '--nend', help='logn end', default=18, type=int)
@@ -24,7 +24,7 @@ if __name__ == "__main__":
 
     print(args)
 
-tags = ['T0', 'T1', 'T2', 'iterative_heapify', 'heap_insert_bounded', 'turbosampling', 'defered', 'l2intrinsics'] if args.tag is None else [args.tag]
+tags = ['dan-test', 'heap_insert_bounded', 'turbosampling', 'l2intrinsics', 'mem-align', 'blocked-distances-for-new'] if args.tag is None else [args.tag]
 for t in tags:
 # delete temp directory
     subprocess.run(['rm', '-rf','tmp'])

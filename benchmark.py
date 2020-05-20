@@ -47,6 +47,38 @@ def benchmark(dataset_name, dim, path, k, metric, repetitions, n_start, n_end, n
 
     save_data('{}_{}_dim{}_logn{}to{}_k{}'.format(prefix, dataset_name,dim, n_start, n_end, k), inputs, sim_evals, runtimes, cycles, cycles_std, flops)
 
+def benchmark_dim(dataset_name, n, path, k, metric, repetitions, dim_start, dim_end, dim_step, prefix):
+    inputs = []
+    cycles = []
+    cycles_std = []
+    runtimes = []
+    sim_evals = []
+
+    for dim in np.arange(dim_start, dim_end, dim_step):
+        inputs.append(n)
+        dataset = get_dataset(dataset_name, n,dim)
+
+        nn_list, timing_data = c_nearest_neighbors(path, dataset, k, metric, repetitions)
+        # append median or avg?
+        cycles.append(timing_data.median_cycle)
+        cycles_std.append(timing_data.std_cycle)
+        runtimes.append(timing_data.median_runtime)
+
+        cost_data = measure_costs(path, dataset, k, metric)
+        sim_evals.append(cost_data.metric_calls)
+    print(sim_evals)
+
+# for L2 norm:
+# d operations for a[i]-b[i]
+# d operations for squaring each component
+# d-1 operations for summing up the squares
+# so 3d flops per sim evaluation
+
+    flops = np.array(sim_evals)*dataset.D*(3-1)
+
+    save_data('{}_{}_n{}_dim{}to{}_k{}'.format(prefix, dataset_name,dim, dim_start, dim_end, k), inputs, sim_evals, runtimes, cycles, cycles_std, flops)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-p','--path', required=True, help='path to a.out executable')
