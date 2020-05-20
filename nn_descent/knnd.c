@@ -172,7 +172,10 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
         sample_reverse_union(new, old, B, max_candidates, data_size);
 
         c = 0;
-        for (int v = 0; v < data_size; v++) {
+        for (int j = 0; j < data_size; j++) {
+            int v = fwd_permutation[j];
+            // printf("index: %d\n", v);
+            
             // brute force algorithm to solve KNN:
             // for new[v] x new[v]
             // for new[v] x old[v]
@@ -215,7 +218,7 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
     // printf("done, cleaning up...\n");
 
-    revert_permutation(bwd_permutation, B, data.size, k);
+    // revert_permutation(bwd_permutation, B, data.size, k);
 
     printf("NNDescent finished \n");
 
@@ -248,7 +251,7 @@ void reallocate_data(uint32_t* bwd_permutation, uint32_t* fwd_permutation, heap_
   // }
   // SORT
 
-
+  // Heuristic:
   for (int i=0; i<data.size; i++) {
 
     // SORT
@@ -263,11 +266,12 @@ void reallocate_data(uint32_t* bwd_permutation, uint32_t* fwd_permutation, heap_
     for (int j=0; j<B[i].size; j++) {
       // k= j-th smallest element in B[i]
       // if fwd_permutation[k] > i+1
-
-      // if (fwd_permutation[tmp_ids[j]] > i+1){
-      //
-      // }
       //  switch, break loop
+
+      if (fwd_permutation[tmp_ids[j]] > i+1){
+        switch_i_j(bwd_permutation, fwd_permutation, (i+1), fwd_permutation[tmp_ids[j]]);
+        break;
+      }
     }
     // no switch, leave i+1 where it is
   }
@@ -320,78 +324,78 @@ void quickSort(float* vals, uint32_t* ids, int low, int high)
     }
 }
 
-void permute_ids(uint32_t* permutation, heap_t* B, int size){
-  for (int i = 0; i < size; i++) {
-    for (int j = 0; j < B[i].size; j++) {
-      B[i].ids[j] = permutation[B[i].ids[j]];
-    }
-  }
-}
+// void permute_ids(uint32_t* permutation, heap_t* B, int size){
+//   for (int i = 0; i < size; i++) {
+//     for (int j = 0; j < B[i].size; j++) {
+//       B[i].ids[j] = permutation[B[i].ids[j]];
+//     }
+//   }
+// }
 
 
 // https://stackoverflow.com/questions/523861/permutation-of-a-vector
 // Since each swap operation puts at least one (of the two) elements
 // in the correct position, we need no more than N such swaps altogether.
-void revert_permutation(uint32_t* permutation, heap_t* B, int size, int k){
-  permute_ids(permutation, B, size);
+// void revert_permutation(uint32_t* permutation, heap_t* B, int size, int k){
+//   permute_ids(permutation, B, size);
+//
+//   for (uint32_t i = 0; i < size; i++) {
+//     while (permutation[i] != i) {
+//       // printf("i: %d\n", i);
+//       uint32_t ind = permutation[i];
+//       // printf("ind: %d\n", ind);
+//       switch_B_i_j(B, i, ind, k);
+//       SWAP(permutation[i], permutation[ind], uint32_t);
+//     }
+//   }
+// }
 
-  for (uint32_t i = 0; i < size; i++) {
-    while (permutation[i] != i) {
-      // printf("i: %d\n", i);
-      uint32_t ind = permutation[i];
-      // printf("ind: %d\n", ind);
-      switch_B_i_j(B, i, ind, k);
-      SWAP(permutation[i], permutation[ind], uint32_t);
-    }
-  }
-}
 
-
-void switch_i_j(uint32_t* bwd_permutation, uint32_t* fwd_permutation, heap_t* B, dataset_t data, uint32_t i, uint32_t j, int k){
+void switch_i_j(uint32_t* bwd_permutation, uint32_t* fwd_permutation, uint32_t i, uint32_t j){
   SWAP(fwd_permutation[bwd_permutation[i]], fwd_permutation[bwd_permutation[j]], uint32_t);
   SWAP(bwd_permutation[i], bwd_permutation[j], uint32_t);
 
-  // swap data.values[i] and data.values[j]
-
-  float* tmp = malloc(data.dim * sizeof(float));
-  memcpy(tmp, data.values[i], sizeof(float)*data.dim );
-  memcpy(data.values[i], data.values[j], sizeof(float)*data.dim );
-  memcpy(data.values[j], tmp, sizeof(float)*data.dim );
-  free(tmp);
-
-  switch_B_i_j(B, i, j, k);
+  // // swap data.values[i] and data.values[j]
+  //
+  // float* tmp = malloc(data.dim * sizeof(float));
+  // memcpy(tmp, data.values[i], sizeof(float)*data.dim );
+  // memcpy(data.values[i], data.values[j], sizeof(float)*data.dim );
+  // memcpy(data.values[j], tmp, sizeof(float)*data.dim );
+  // free(tmp);
+  //
+  // switch_B_i_j(B, i, j, k);
 
 
 }
 
-void switch_B_i_j(heap_t* B, uint32_t i, uint32_t j, int k){
-
-  uint32_t* tmp_ids = malloc(k * sizeof(uint32_t));
-  memcpy(tmp_ids, B[i].ids, sizeof(uint32_t)*k);
-  memcpy(B[i].ids, B[j].ids, sizeof(uint32_t)*k);
-  memcpy(B[j].ids, tmp_ids, sizeof(uint32_t)*k);
-
-  float* tmp_vals = malloc(k * sizeof(float));
-  memcpy(tmp_vals, B[i].vals, sizeof(float)*k);
-  memcpy(B[i].vals, B[j].vals, sizeof(float)*k);
-  memcpy(B[j].vals, tmp_vals, sizeof(float)*k);
-
-  bool* tmp_isnews = malloc(k * sizeof(bool));
-  memcpy(tmp_isnews, B[i].isnews, sizeof(bool)*k);
-  memcpy(B[i].isnews, B[j].isnews, sizeof(bool)*k);
-  memcpy(B[j].isnews, tmp_isnews, sizeof(bool)*k);
-
-
-  SWAP(B[i].rev_new, B[j].rev_new, int);
-  SWAP(B[i].rev_old, B[j].rev_old, int);
-  SWAP(B[i].fwd_new, B[j].fwd_new, int);
-  SWAP(B[i].fwd_old, B[j].fwd_old, int);
-  SWAP(B[i].size, B[j].size, int);
-
-  free(tmp_ids);
-  free(tmp_vals);
-  free(tmp_isnews);
-}
+// void switch_B_i_j(heap_t* B, uint32_t i, uint32_t j, int k){
+//
+//   uint32_t* tmp_ids = malloc(k * sizeof(uint32_t));
+//   memcpy(tmp_ids, B[i].ids, sizeof(uint32_t)*k);
+//   memcpy(B[i].ids, B[j].ids, sizeof(uint32_t)*k);
+//   memcpy(B[j].ids, tmp_ids, sizeof(uint32_t)*k);
+//
+//   float* tmp_vals = malloc(k * sizeof(float));
+//   memcpy(tmp_vals, B[i].vals, sizeof(float)*k);
+//   memcpy(B[i].vals, B[j].vals, sizeof(float)*k);
+//   memcpy(B[j].vals, tmp_vals, sizeof(float)*k);
+//
+//   bool* tmp_isnews = malloc(k * sizeof(bool));
+//   memcpy(tmp_isnews, B[i].isnews, sizeof(bool)*k);
+//   memcpy(B[i].isnews, B[j].isnews, sizeof(bool)*k);
+//   memcpy(B[j].isnews, tmp_isnews, sizeof(bool)*k);
+//
+//
+//   SWAP(B[i].rev_new, B[j].rev_new, int);
+//   SWAP(B[i].rev_old, B[j].rev_old, int);
+//   SWAP(B[i].fwd_new, B[j].fwd_new, int);
+//   SWAP(B[i].fwd_old, B[j].fwd_old, int);
+//   SWAP(B[i].size, B[j].size, int);
+//
+//   free(tmp_ids);
+//   free(tmp_vals);
+//   free(tmp_isnews);
+// }
 
 int sample_reverse_union(vec_t* new, vec_t* old, heap_t* B, int max_candidates, int N) {
     // this function samples, reverses and does the union all at once
