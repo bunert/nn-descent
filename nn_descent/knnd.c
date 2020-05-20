@@ -160,6 +160,8 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
             // vec_sort(&old[v]);
             vec_sort(&new[v]);
             brute_force_new(metric, data, &updates, &new[v]);
+            //brute_force_new_unblocked(metric, data, &updates, &new[v]);
+            //brute_force_new_old(metric, data, &updates, &new[v], &old[v]);
             nn_brute_force(metric, data, &updates, &new[v], &old[v]);
             // nn_brute_force(metric, data, &updates, &new[v], &new[v]);
             
