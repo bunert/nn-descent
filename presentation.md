@@ -3,13 +3,21 @@
 -- motivation [n^2 vs n^1.14]
 -- main bottleneck (random access pattern)
 -- only present intuition of algorithm relevant for presentation
-- Sampling [3min] (Dan)
--- naive -> pynndescent -> turbosampling
-- Order of input data [3min] (Tobi)
--- Improvements by locality (sorted MNIST, clustered dataset)
--- experiments (sorted MNIST, clustered dataset)
+
+[4min]
+- Optimizations for **Random Access Pattern**
+-- Sampling
+-- naive -> pynndescent -> turbosampling [one pass]
+-- Motivation: Improvements by locality (sorted MNIST, clustered dataset)
+-- copy vs order
 -- cachegrind
 -- heuristic to reorder data in memory
-- L2 [2min] (Sam draft)
--- intrinsics, blocking etc.
--- memory alignement (loadu/load)
+
+[4min]
+- transition: dimension higher, random access pattern impact lower 
+- Higher dimensional :
+-- sorting first
+-- blocking [cache gets full], [upper triangle]
+
+- Std/General/Trivia:
+-- memory alignment
