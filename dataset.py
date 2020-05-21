@@ -4,7 +4,7 @@ from pathlib import Path
 import urllib.request
 import pandas as pd
 
-def get_dataset(data_name, n, dim):
+def get_dataset(data_name, n, dim, clusters=None, noshuffle=False):
     if data_name == 'gaussian':
         # n datapoints sampled from each of dim gaussians centered around canonical basis vector with dimension dim
         n = 1000 if n is None else n
@@ -12,7 +12,7 @@ def get_dataset(data_name, n, dim):
     elif data_name == 'clustered':
         # n datapoints sampled from each of dim gaussians centered around canonical basis vector with dimension dim
         n = 1000 if n is None else n
-        return ClusteredDataset(dimension=8, n=n, clusters=dim)
+        return ClusteredDataset(dimension=dim, n=n, clusters=clusters, noshuffle=noshuffle)
     elif data_name == 'audio':
         # Audio dataset as described in the NN-Descent publication
         #  54,387 points (192 dimensional)
@@ -47,8 +47,8 @@ class Dataset:
         np.savetxt(filename, self.X)
 
 class ClusteredDataset(Dataset):
-    def __init__(self, dimension, clusters, n):
-        print("Dimension",dimension, ", clusters:", clusters, ", n:",n)
+    def __init__(self, dimension, clusters, n, noshuffle):
+        print("Dimension",dimension, ", clusters:", clusters, ", n:",n, ", shuffle: ",not noshuffle)
         # n=total points, equally distributed on clusters. each point has dimension dimensions
 
         def min_dist(mean_matrix):
@@ -73,8 +73,9 @@ class ClusteredDataset(Dataset):
             mean = np.zeros(dimension)
             X.append(np.random.multivariate_normal(means[i], cov, n//clusters))
         X = np.vstack(X)
-        np.random.shuffle(X)
-        print("shuffled")
+        if not noshuffle:
+            np.random.shuffle(X)
+            print("shuffled")
         print("done with dataset")
         Dataset.__init__(self, X)
 
