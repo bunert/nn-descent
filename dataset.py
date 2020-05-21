@@ -13,6 +13,9 @@ def get_dataset(data_name, n, dim, clusters=None, noshuffle=False):
         # n datapoints sampled from each of dim gaussians centered around canonical basis vector with dimension dim
         n = 1000 if n is None else n
         return ClusteredDataset(dimension=dim, n=n, clusters=clusters, noshuffle=noshuffle)
+    elif data_name == 'singlegaussian':
+        n = 1000 if n is None else n
+        return SingleGaussianDataset(dimension=dim, variance=2.0, n=n)
     elif data_name == 'audio':
         # Audio dataset as described in the NN-Descent publication
         #  54,387 points (192 dimensional)
@@ -30,7 +33,7 @@ def get_dataset(data_name, n, dim, clusters=None, noshuffle=False):
             if not Path(csv_file).is_file():
                 print("downloading " + csv_file)
                 urllib.request.urlretrieve("https://pjreddie.com/media/files/" + csv_file, csv_file)
-        return MnistDataset()
+        return MnistDataset(n)
     else:
         print("dataset not supported")
         exit(1)
@@ -45,6 +48,16 @@ class Dataset:
     def save(self, filename):
         # save dataset to space separated values file
         np.savetxt(filename, self.X)
+
+class SingleGaussianDataset(Dataset):
+    def __init__(self, dimension, variance, n):
+
+        cov = variance * np.identity(dimension)
+        X = []
+        mean = np.zeros(dimension)
+        X = np.random.multivariate_normal(mean, cov, n)
+        np.random.shuffle(X)
+        Dataset.__init__(self, X)
 
 class ClusteredDataset(Dataset):
     def __init__(self, dimension, clusters, n, noshuffle):
@@ -115,10 +128,12 @@ class AudioDataset(Dataset):
             X = np.frombuffer(np.array(f.read(4*size*dim_elem_size)), dtype=np.float32);
 
             X = X.reshape((size,dim_elem_size))
+            np.random.shuffle(X)
 
             # take not the whole dataset
             if (n!=0):
                 X = X[:n,:]
+
 
             self.X = X
 
@@ -136,7 +151,7 @@ class MnistDataset(Dataset):
 
     # Default MNIST Dataset 70k handwritten digits (784 dimensional)
 
-    def __init__(self):
+    def __init__(self, n):
         train = 'mnist_train.csv' # 60k
         test = 'mnist_test.csv' # 10k
 
@@ -145,9 +160,16 @@ class MnistDataset(Dataset):
 
         complete_df = pd.concat([train_df, test_df], axis = 0)
 
-        self.X = complete_df.iloc[:,1:].to_numpy(dtype='float32')
-        self.N = complete_df.shape[0] # 70,000
-        self.D = complete_df.shape[1] - 1 # 784
+        X = complete_df.iloc[:,1:].to_numpy(dtype='float32')
+        np.random.shuffle(X)
+        if (n!=0):
+            X = X[:n,:]
+
+        self.X = X
+        Dataset.__init__(self, X)
+
+        #self.N = complete_df.shape[0] # 70,000
+        #self.D = complete_df.shape[1] - 1 # 784
 
 
 

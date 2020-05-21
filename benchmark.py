@@ -9,9 +9,6 @@ from nearestneighbors import c_nearest_neighbors, py_nearest_neighbors, nearest_
 from cost import Costdata, measure_costs
 import argparse
 
-
-
-
 def save_data(fname, n, simi_evals, runtime_s, runtime_cycles, cycles_std, flops):
     X = np.array([n, simi_evals, runtime_s, runtime_cycles, cycles_std, flops]).transpose()
     np.savetxt(os.path.join('benchmarking', fname), X)
@@ -24,8 +21,9 @@ def benchmark(dataset_name, dim, path, k, metric, repetitions, n_start, n_end, n
     sim_evals = []
 
     for n in np.logspace(n_start, n_end, num=n_res*(n_end-n_start+1), dtype=int, base=2):
-        inputs.append(n)
+
         dataset = get_dataset(dataset_name, n,dim)
+        inputs.append(dataset.N)
 
         nn_list, timing_data = c_nearest_neighbors(path, dataset, k, metric, repetitions)
         # append median or avg?
@@ -46,6 +44,38 @@ def benchmark(dataset_name, dim, path, k, metric, repetitions, n_start, n_end, n
     flops = np.array(sim_evals)*dataset.D*(3-1)
 
     save_data('{}_{}_dim{}_logn{}to{}_k{}'.format(prefix, dataset_name,dim, n_start, n_end, k), inputs, sim_evals, runtimes, cycles, cycles_std, flops)
+
+def benchmark_dim(dataset_name, n, path, k, metric, repetitions, dim_start, dim_end, dim_step, prefix):
+    inputs = []
+    cycles = []
+    cycles_std = []
+    runtimes = []
+    sim_evals = []
+    flops = []
+
+    for dim in np.arange(dim_start, dim_end, dim_step):
+        inputs.append(dim)
+        dataset = get_dataset(dataset_name, n,dim)
+
+        nn_list, timing_data = c_nearest_neighbors(path, dataset, k, metric, repetitions)
+        # append median or avg?
+        cycles.append(timing_data.median_cycle)
+        cycles_std.append(timing_data.std_cycle)
+        runtimes.append(timing_data.median_runtime)
+
+        cost_data = measure_costs(path, dataset, k, metric)
+        sim_evals.append(cost_data.metric_calls)
+        flops.append(cost_data.metric_calls*dataset.D*(3-1))
+        print("Dim: ",dim,", flops:",flops[len(flops)-1]/cycles[len(cycles)-1])
+
+# for L2 norm:
+# d operations for a[i]-b[i]
+# d operations for squaring each component
+# d-1 operations for summing up the squares
+# so 3d flops per sim evaluation
+
+    save_data('{}_{}_n{}_dim{}to{}_k{}'.format(prefix, dataset_name, n, dim_start, dim_end, k), inputs, sim_evals, runtimes, cycles, cycles_std, flops)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
