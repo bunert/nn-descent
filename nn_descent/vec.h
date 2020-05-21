@@ -25,6 +25,7 @@ typedef struct {
     uint32_t *ids;
 } vec_t;
 void vec_insert_bounded(vec_t* h, uint32_t id, int max_candidates);
+void vec_sort(vec_t* h);
 
 int heap_create(heap_t*, int);
 void heap_clear();

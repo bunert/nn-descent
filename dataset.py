@@ -5,6 +5,10 @@ import urllib.request
 import pandas as pd
 
 def get_dataset(data_name, n, dim, clusters=None, noshuffle=False):
+    if ((dim % 8 != 0)):
+        print("Choose dimensionality which is divisible by 8 (restriction)")
+        exit(1)
+
     if data_name == 'gaussian':
         # n datapoints sampled from each of dim gaussians centered around canonical basis vector with dimension dim
         n = 1000 if n is None else n
@@ -34,6 +38,12 @@ def get_dataset(data_name, n, dim, clusters=None, noshuffle=False):
                 print("downloading " + csv_file)
                 urllib.request.urlretrieve("https://pjreddie.com/media/files/" + csv_file, csv_file)
         return MnistDataset(n)
+
+    elif data_name == 'pca_mnist':
+        return MnistSortedDataset(umap=False)
+
+    elif data_name == 'umap_mnist':
+        return MnistSortedDataset(umap=True)
     else:
         print("dataset not supported")
         exit(1)
@@ -172,6 +182,21 @@ class MnistDataset(Dataset):
         #self.D = complete_df.shape[1] - 1 # 784
 
 
+class MnistSortedDataset(Dataset):
+
+    # MNIST dataset sorted according to a 1d umap
+
+    def __init__(self, umap=True):
+        if umap:
+            df = pd.read_csv('mnist_sort_umap.csv', header=None)
+        else:
+            df = pd.read_csv('mnist_sort_pca.csv', header=None)
+
+
+
+        self.X = df.to_numpy(dtype='float32')
+        self.N = df.shape[0] # 70,000
+        self.D = df.shape[1] # 784
 
 
 

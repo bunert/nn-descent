@@ -181,8 +181,15 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
             // brute force algorithm to solve KNN:
             // for new[v] x new[v]
             // for new[v] x old[v]
-            nn_brute_force(metric, data, &updates, &new[v], &new[v]);
+            // vec_sort(&old[v]);
+            vec_sort(&new[v]);
+            brute_force_new(metric, data, &updates, &new[v]);
+            //brute_force_new_unblocked(metric, data, &updates, &new[v]);
+            //brute_force_new_old(metric, data, &updates, &new[v], &old[v]);
             nn_brute_force(metric, data, &updates, &new[v], &old[v]);
+            // nn_brute_force(metric, data, &updates, &new[v], &new[v]);
+            
+            
 
             // we will create at most m_c*m_c*2 updates in the next iteration
             // if theres enough space we do not need to perform the updates yet
@@ -311,13 +318,22 @@ void** reallocate_data(uint32_t* bwd_permutation, uint32_t* fwd_permutation, hea
   // reorder (copy) the data with the derived permutation
 
   // reorder data.values
+
+  // ensure that everything is 4 byte aligned
+  // might need to alloc some more space for the pointer part of data.values
+    uint32_t n256 = data.size;
+    if (data.size % 4 != 0)
+    {
+        n256 += + (4 - (data.size % 4));
+    } 
+
   dataset_t* data_ = malloc(sizeof(dataset_t));
-  data_->values = malloc((sizeof(float*) * data.size) + (data.size * data.dim * sizeof(float)));
+  data_->values = aligned_alloc(256, (sizeof(float*) * n256) + (data.size * data.dim * sizeof(float))); // malloc((sizeof(float*) * data.size) + (data.size * data.dim * sizeof(float)));
   data_->size = data.size;
   data_->dim = data.dim;
   for (int i = 0; i < data.size; i++) {
       // row pointer arithmetic (according to read data in knnd_test)
-      data_->values[i] = (float*)(data_->values + data.size) + i * data.dim;
+      data_->values[i] = (float*)(data_->values + n256) + i * data.dim;
       memcpy(data_->values[i], data.values[bwd_permutation[i]], sizeof(float)*data.dim);
   }
 
