@@ -4,7 +4,7 @@ import os
 import time
 import subprocess
 
-from benchmark import benchmark, benchmark_dim
+from benchmark import benchmark, benchmark_dim, git_clone
 
 import argparse
 
@@ -31,14 +31,8 @@ if __name__ == "__main__":
 
 tags = ['dan-test', 'heap_insert_bounded', 'turbosampling', 'l2intrinsics', 'mem-align', 'blocked-distances-for-new'] if args.tag is None else [args.tag]
 for t in tags:
-# delete temp directory
-    subprocess.run(['rm', '-rf','tmp'])
+    git_clone(t)
 
-# clone repo
-    subprocess.run(['git', 'clone', 'git@gitlab.inf.ethz.ch:COURSE-ASL2020/team052.git', 'tmp'])
-
-# set tag
-    subprocess.run(['git', 'checkout', t], cwd='tmp')
     if args.dimend is not None:
         print("benchmarking dimension")
         benchmark_dim(args.dataset, 2**args.nstart, 'tmp/nn_descent', args.k, 'l2', args.repetitions, args.dimstart, args.dimend, args.dimstep, t)

@@ -11,7 +11,7 @@ from pynndescent import NNDescent
 class NearestNeighbors:
     # initialization with either a file
     # or 2d numpy array
-    def __init__(self, NN=None, metric='l2', filename=None):
+    def __init__(self, NN=None, metric='l2', filename=None, stdout=""):
         if filename is None:
             self.NN = NN
         else:
@@ -21,6 +21,8 @@ class NearestNeighbors:
         self.K = self.NN.shape[1]
 
         self.metric = metric
+
+        self.stdout = stdout
 
     # calculates recall (assuming one of the datasets
     # represents the ground truth)
@@ -88,7 +90,7 @@ def c_nearest_neighbors(directory, dataset, K, metric, repetition, stdout=False,
         if stdout: print(process.stdout)
 
         c,t  = parse_output(process.stdout.splitlines())
-        nn_data = NearestNeighbors(filename='output')
+        nn_data = NearestNeighbors(filename='output', stdout=process.stdout)
 
         cycles[i] = c
         runtime[i] = t

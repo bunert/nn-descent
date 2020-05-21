@@ -90,6 +90,7 @@ class ClusteredDataset(Dataset):
             if min_dist(means)>1000:
                 separate_cluster_means = True
 
+        self.means = means
         cov = 1 * np.identity(dimension)
         X = []
         for i in range(clusters):

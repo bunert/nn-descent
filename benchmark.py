@@ -8,6 +8,15 @@ from nearestneighbors import c_nearest_neighbors, py_nearest_neighbors, nearest_
 
 from cost import Costdata, measure_costs
 import argparse
+def git_clone(tag):
+# delete temp directory
+    subprocess.run(['rm', '-rf','tmp'])
+
+# clone repo
+    subprocess.run(['git', 'clone', 'git@gitlab.inf.ethz.ch:COURSE-ASL2020/team052.git', 'tmp'])
+
+# set tag
+    subprocess.run(['git', 'checkout', tag], cwd='tmp')
 
 def save_data(fname, n, simi_evals, runtime_s, runtime_cycles, cycles_std, flops):
     X = np.array([n, simi_evals, runtime_s, runtime_cycles, cycles_std, flops]).transpose()
