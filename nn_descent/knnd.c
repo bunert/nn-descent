@@ -157,26 +157,27 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
 
     uint32_t* bwd_permutation = malloc(data.size * sizeof(uint32_t));
     uint32_t* fwd_permutation = malloc(data.size * sizeof(uint32_t));
-
-    // initialize perutation
-    for (uint32_t n = 0; n < data.size; n++) {
-      bwd_permutation[n] = n;
-      fwd_permutation[n] = n;
+    // initialize forward and backwards permutation as identity
+    for (uint32_t i = 0; i < data.size; i++) {
+      bwd_permutation[i] = i;
+      fwd_permutation[i] = i;
     }
 
     do {
+        // time one iteration of the main loop
+        // only for additional infomation
         gettimeofday(&start, NULL);
+
         vec_list_clear(old, data_size);
         vec_list_clear(new, data_size);
 
         sample_reverse_union(new, old, B, max_candidates, data_size);
 
         c = 0;
-        for (int j = 0; j < data_size; j++) {
-            int v=j;
+        for (int v = 0; v < data_size; v++) {
             //int v = fwd_permutation[j];
             //printf("index: %d\n", v);
-            
+
             // brute force algorithm to solve KNN:
             // for new[v] x new[v]
             // for new[v] x old[v]
@@ -203,50 +204,43 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
         updates.size=0;
        // printf("iteration complete: %d / %d\n", c, stop_iter);
 
-       // reallocate data after first iteration
+       // using the result of the first iteration in order to reallocate the data for the following iterations
        if (iter==1){
+         // the reallocated data is returned using two pointers:
+         // we did not reallocate in place to avoid unneccessary memcpys
          void** ptrs = reallocate_data(bwd_permutation, fwd_permutation, B, data, k);
          B = ptrs[0];
          data = *(dataset_t*) ptrs[1];
          free(ptrs);
-         /*for (int i=0; i<data.size; i++) {
-             printf("%d\n",fwd_permutation[i]);
-         }*/
-         /*
-         int in_cluster=0;
-         for (int i=0; i<data.size; i++) {
-            if (fwd_permutation[i] == i)
-                in_cluster++;
-         }
-         printf("in cluster: %f\n", (float)in_cluster/data.size);*/
        }
 
+       // end of one main loop iteation, print the timing information
        gettimeofday(&end, NULL);
        double timing = (double)((end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec)/1e6);
        printf("Iteration %d: %f seconds\n", iter, timing);
+
+       // iteration counter (NEEDED for the reallocate data not just for timing)
        iter++;
 
     } while (c >= stop_iter);
-// assert(validate_connection_counters(B, data.size)==data.size*k*2);
 
-
+    // assert(validate_connection_counters(B, data.size)==data.size*k*2);
     // printf("done, cleaning up...\n");
 
-        gettimeofday(&start, NULL);
-    // revert_permutation(bwd_permutation, B, data.size, k);
-    heap_t* B_     = heap_list_create(data.size, k);
-    for (int i = 0; i < data.size; i++) {
-        // memcpy(B_[i].ids, B[bwd_permutation[i]].ids, sizeof(uint32_t)*k);
 
-        memcpy(B_[i].vals, B[fwd_permutation[i]].vals, sizeof(float)*k);
-        B_[i].size = B[fwd_permutation[i]].size;
-        for (int j=0; j<B[fwd_permutation[i]].size; j++) {
-            B_[i].ids[j] = bwd_permutation[B[fwd_permutation[i]].ids[j]];
-        }
+    // revert the permutation of the B[i]'s in order to validate the result on the correct indices
+    heap_t* B_ = heap_list_create(data.size, k);
+    for (int i = 0; i < data.size; i++) {
+      // copy the value array (needed for the heap_check in knnd_test),
+      // can be avoided if only the id's are needed to verify the result
+      memcpy(B_[i].vals, B[fwd_permutation[i]].vals, sizeof(float)*k);
+
+      // revert the size and most important the id's
+      B_[i].size = B[fwd_permutation[i]].size;
+      for (int j=0; j<B[fwd_permutation[i]].size; j++) {
+          B_[i].ids[j] = bwd_permutation[B[fwd_permutation[i]].ids[j]];
+      }
     }
-       gettimeofday(&end, NULL);
-       double timing = (double)((end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec)/1e6);
-       printf("Move %d: %f seconds\n", iter, timing);
 
     printf("NNDescent finished \n");
 
@@ -257,226 +251,100 @@ heap_t* nn_descent(dataset_t data, float(*metric)(float*, float*, int), int k, f
     free(updates.dist);
     free(bwd_permutation);
     free(fwd_permutation);
+    heap_list_free(B, data.size);
 
     return B_;
 }
+
 int compare (const void * a, const void * b)
 {
   return ( **(float**)a >= **(float**)b )? 1 : -1;
 }
 
-float l2(float* v1, float* v2, int d);
 // heuristic approach for reordering
 void** reallocate_data(uint32_t* bwd_permutation, uint32_t* fwd_permutation, heap_t* B, dataset_t data, int k){
-  // permute ranom and test if we get the identity permutation
-  // by applying the backwards first and then the forward permutation
-  // for (int l=0; l<2000; l++) {
-  //   uint32_t i = rand()%data.size;
-  //   uint32_t j = rand()%data.size;
-  //   if (i==j) continue;
-  //   uint32_t tmp = bwd_permutation[i];
-  //   switch_i_j(bwd_permutation,fwd_permutation, B, data, i, j, k);
-  //   assert(tmp == bwd_permutation[j]);
-  //   for (int k=0; k<data.size; k++) {
-  //     assert(fwd_permutation[bwd_permutation[k]]==k);
-  //   }
-  //   // printf("%d %d\n", i, j);
-  // }
-  // SORT
+  // first compute the forward and backwards permutation derived by the Heuristic
+  // afterwards reorder (copy) the data by the derived permutation
 
-  // Heuristic:
+
   for (int i=0; i<data.size; i++) {
 
-    // SORT
-    
+    // Sort the values of B[i].vals as well as the corresponding B[i].ids
+    // in order to iterate in the right order through the actual nearest neighbor approximation
+    // core idea: consider the best neighbor first
+    // in order to use the qsort stdlib function we pass the pointers to the function
+    // --> effectively sorting pointers accoding to their valies
+    // and can reuse the pointer offsets to sort the id's in the same way as the actual values
     float** ptr = malloc(k * sizeof(float*));
     for (int j=0; j<k; j++)
         ptr[j] = &(B[bwd_permutation[i]].vals[j]);
-/*
-    for (int j=0; j<k; j++)
-        printf("%f ",*(ptr[j]));*/
     qsort(ptr, k, sizeof(float*), compare);
-    /*
-    printf("\n");
-    for (int j=0; j<k; j++)
-        printf("%f ",*(ptr[j]));
-    return;*/
+
+
     float* tmp_vals = malloc(k * sizeof(float));
     for (int j=0; j<k; j++)
         tmp_vals[j] = *(ptr[j]);
 
+    // change ids to match the new sorted values
     uint32_t* tmp_ids = malloc(k * sizeof(uint32_t));
     for (int j=0; j<k; j++)
         tmp_ids[j] = *(ptr[j]-B[bwd_permutation[i]].vals + B[bwd_permutation[i]].ids);
-    
 
-    // quickSort(tmp_vals, tmp_ids, 0, (B[i].size-1));
 
+    // Heuristic approach to reoder data
     for (int j=0; j<B[i].size; j++) {
-      // k= j-th smallest element in B[i]
-      // if fwd_permutation[k] > i+1
-      //  switch, break loop
+      // j-th smallest element in B[i]
+      // switch one element or if the wanted element is at the right position break
+      // and continue with the next B[i+1]
 
+      // exactly at the spot where we want
       if (fwd_permutation[tmp_ids[j]] == i+1)
-          break;
+        break;
+      // reorder only if the target index is in the "untouched" region
       if (fwd_permutation[tmp_ids[j]] > i+1){
-        //printf("swapping: %d, %d\n", (i+1), fwd_permutation[tmp_ids[j]]);
-        //printf("dist: %f, promised: %f\n", l2(data.values[bwd_permutation[(i)]], data.values[B[bwd_permutation[i]].ids[j]], data.dim), tmp_vals[j]);
-        //printf("dist: %f, promised: %f\n", l2(data.values[bwd_permutation[(i)]], data.values[tmp_ids[j]], data.dim), tmp_vals[j]);
-
         switch_i_j(bwd_permutation, fwd_permutation, (i+1), fwd_permutation[tmp_ids[j]]);
-        /*printf("dist: %f, promised: %f\n", l2(data.values[bwd_permutation[(i)]], data.values[bwd_permutation[i+1]], data.dim), tmp_vals[j]);*/
         break;
       }
     }
-    // no switch, leave i+1 where it is
   }
-      dataset_t* data_ = malloc(sizeof(dataset_t));
-    data_->values = malloc((sizeof(float*) * data.size) + (data.size * data.dim * sizeof(float)));
-    data_->size = data.size;
-    data_->dim = data.dim;
-    for (int i = 0; i < data.size; i++) {
-        data_->values[i] = (float*)(data_->values + data.size) + i * data.dim;
-        memcpy(data_->values[i], data.values[bwd_permutation[i]], sizeof(float)*data.dim);
-    }
-    heap_t* B_     = heap_list_create(data.size, k);
-    for (int i = 0; i < data.size; i++) {
-        // memcpy(B_[i].ids, B[bwd_permutation[i]].ids, sizeof(uint32_t)*k);
 
-        memcpy(B_[i].vals, B[bwd_permutation[i]].vals, sizeof(float)*k);
-        memcpy(B_[i].isnews, B[bwd_permutation[i]].isnews, sizeof(bool)*k);
-        memcpy(&(B_[i].rev_new), &(B[bwd_permutation[i]].rev_new), sizeof(int)*4);
-        assert(B_[i].fwd_old == B[bwd_permutation[i]].fwd_old);
-        B_[i].size = B[bwd_permutation[i]].size;
-        for (int j=0; j<B[bwd_permutation[i]].size; j++) {
-            B_[i].ids[j] = fwd_permutation[B[bwd_permutation[i]].ids[j]];
-        }
-    }
-    void** ptrs = malloc(sizeof(void*)*2);
-    ptrs[0] = B_;
-    ptrs[1] = data_;
-    return  ptrs;
-  // permute_ids(fwd_permutation, B, data.size);
+  // reorder (copy) the data with the derived permutation
+
+  // reorder data.values
+  dataset_t* data_ = malloc(sizeof(dataset_t));
+  data_->values = malloc((sizeof(float*) * data.size) + (data.size * data.dim * sizeof(float)));
+  data_->size = data.size;
+  data_->dim = data.dim;
+  for (int i = 0; i < data.size; i++) {
+      // row pointer arithmetic (according to read data in knnd_test)
+      data_->values[i] = (float*)(data_->values + data.size) + i * data.dim;
+      memcpy(data_->values[i], data.values[bwd_permutation[i]], sizeof(float)*data.dim);
+  }
+
+  // reorder B[i]'s
+  heap_t* B_     = heap_list_create(data.size, k);
+  for (int i = 0; i < data.size; i++) {
+      memcpy(B_[i].vals, B[bwd_permutation[i]].vals, sizeof(float)*k);
+      memcpy(B_[i].isnews, B[bwd_permutation[i]].isnews, sizeof(bool)*k);
+      memcpy(&(B_[i].rev_new), &(B[bwd_permutation[i]].rev_new), sizeof(int)*4);
+      assert(B_[i].fwd_old == B[bwd_permutation[i]].fwd_old);
+      B_[i].size = B[bwd_permutation[i]].size;
+      for (int j=0; j<B[bwd_permutation[i]].size; j++) {
+          B_[i].ids[j] = fwd_permutation[B[bwd_permutation[i]].ids[j]];
+      }
+  }
+
+  // return pointers to the reordered data
+  void** ptrs = malloc(sizeof(void*)*2);
+  ptrs[0] = B_;
+  ptrs[1] = data_;
+  return  ptrs;
 }
 
-
-// quicksort: https://www.geeksforgeeks.org/quick-sort/
-/* This function takes last element as pivot, places
-   the pivot element at its correct position in sorted
-    array, and places all smaller (smaller than pivot)
-   to left of pivot and all greater elements to right
-   of pivot */
-int partition (float* vals, uint32_t* ids, int low, int high)
-{
-    float pivot = vals[high];    // pivot
-    int i = (low - 1);  // Index of smaller element
-
-    for (int j = low; j <= high- 1; j++)
-    {
-        // If current element is smaller than the pivot
-        if (vals[j] < pivot)
-        {
-            i++;    // increment index of smaller element
-            SWAP(vals[i], vals[j], float);
-            SWAP(ids[i], ids[j], uint32_t);
-        }
-    }
-    SWAP(vals[i + 1], vals[high], float);
-    SWAP(ids[i+1], ids[high], uint32_t);
-    return (i + 1);
-}
-
-/* The main function that implements QuickSort
- arr[] --> Array to be sorted,
-  low  --> Starting index,
-  high  --> Ending index */
-void quickSort(float* vals, uint32_t* ids, int low, int high)
-{
-    if (low < high)
-    {
-        /* pi is partitioning index, arr[p] is now
-           at right place */
-        int pi = partition(vals, ids, low, high);
-
-        // Separately sort elements before
-        // partition and after partition
-        quickSort(vals, ids, low, pi - 1);
-        quickSort(vals, ids, pi + 1, high);
-    }
-}
-
-// void permute_ids(uint32_t* permutation, heap_t* B, int size){
-//   for (int i = 0; i < size; i++) {
-//     for (int j = 0; j < B[i].size; j++) {
-//       B[i].ids[j] = permutation[B[i].ids[j]];
-//     }
-//   }
-// }
-
-
-// https://stackoverflow.com/questions/523861/permutation-of-a-vector
-// Since each swap operation puts at least one (of the two) elements
-// in the correct position, we need no more than N such swaps altogether.
-// void revert_permutation(uint32_t* permutation, heap_t* B, int size, int k){
-//   permute_ids(permutation, B, size);
-//
-//   for (uint32_t i = 0; i < size; i++) {
-//     while (permutation[i] != i) {
-//       // printf("i: %d\n", i);
-//       uint32_t ind = permutation[i];
-//       // printf("ind: %d\n", ind);
-//       switch_B_i_j(B, i, ind, k);
-//       SWAP(permutation[i], permutation[ind], uint32_t);
-//     }
-//   }
-// }
-
-
-void switch_i_j(uint32_t* bwd_permutation, uint32_t* fwd_permutation, uint32_t i, uint32_t j){
+inline void switch_i_j(uint32_t* bwd_permutation, uint32_t* fwd_permutation, uint32_t i, uint32_t j){
   SWAP(fwd_permutation[bwd_permutation[i]], fwd_permutation[bwd_permutation[j]], uint32_t);
   SWAP(bwd_permutation[i], bwd_permutation[j], uint32_t);
-
-  // // swap data.values[i] and data.values[j]
-  //
-  // float* tmp = malloc(data.dim * sizeof(float));
-  // memcpy(tmp, data.values[i], sizeof(float)*data.dim );
-  // memcpy(data.values[i], data.values[j], sizeof(float)*data.dim );
-  // memcpy(data.values[j], tmp, sizeof(float)*data.dim );
-  // free(tmp);
-  //
-  // switch_B_i_j(B, i, j, k);
-
-
 }
-
-// void switch_B_i_j(heap_t* B, uint32_t i, uint32_t j, int k){
-//
-//   uint32_t* tmp_ids = malloc(k * sizeof(uint32_t));
-//   memcpy(tmp_ids, B[i].ids, sizeof(uint32_t)*k);
-//   memcpy(B[i].ids, B[j].ids, sizeof(uint32_t)*k);
-//   memcpy(B[j].ids, tmp_ids, sizeof(uint32_t)*k);
-//
-//   float* tmp_vals = malloc(k * sizeof(float));
-//   memcpy(tmp_vals, B[i].vals, sizeof(float)*k);
-//   memcpy(B[i].vals, B[j].vals, sizeof(float)*k);
-//   memcpy(B[j].vals, tmp_vals, sizeof(float)*k);
-//
-//   bool* tmp_isnews = malloc(k * sizeof(bool));
-//   memcpy(tmp_isnews, B[i].isnews, sizeof(bool)*k);
-//   memcpy(B[i].isnews, B[j].isnews, sizeof(bool)*k);
-//   memcpy(B[j].isnews, tmp_isnews, sizeof(bool)*k);
-//
-//
-//   SWAP(B[i].rev_new, B[j].rev_new, int);
-//   SWAP(B[i].rev_old, B[j].rev_old, int);
-//   SWAP(B[i].fwd_new, B[j].fwd_new, int);
-//   SWAP(B[i].fwd_old, B[j].fwd_old, int);
-//   SWAP(B[i].size, B[j].size, int);
-//
-//   free(tmp_ids);
-//   free(tmp_vals);
-//   free(tmp_isnews);
-// }
 
 int sample_reverse_union(vec_t* new, vec_t* old, heap_t* B, int max_candidates, int N) {
     // this function samples, reverses and does the union all at once
@@ -555,7 +423,7 @@ int validate_connection_counters(heap_t* B, int N) {
     for (int i=0; i<N; i++) {
         heap_t heap = B[i];
         int u = i;
-// printf("i: %d, sum: %d\n", i, (B[i].fwd_new + B[i].fwd_old));
+        // printf("i: %d, sum: %d\n", i, (B[i].fwd_new + B[i].fwd_old));
         // assert(B[i].fwd_new + B[i].fwd_old == 20);
         sum += B[i].fwd_new + B[i].fwd_old + B[i].rev_new + B[i].rev_old;
 
@@ -585,4 +453,19 @@ int validate_connection_counters(heap_t* B, int N) {
     free(fwd_old);
     free(fwd_new);
     return sum;
+}
+
+void validate_permutation_vectors(uint32_t* fwd_permutation, uint32_t* bwd_permutation, int size){
+  // permute ranom and test if we get the identity permutation
+  // by applying the backwards first and then the forward permutation
+  for (int l=0; l<2000; l++) {
+    uint32_t i = rand()% size;
+    uint32_t j = rand()% size;
+    if (i==j) continue;
+    switch_i_j(bwd_permutation,fwd_permutation, i, j);
+    for (int k=0; k< size; k++) {
+      assert(fwd_permutation[bwd_permutation[k]]==k);
+    }
+    // printf("%d %d\n", i, j);
+  }
 }
