@@ -48,7 +48,7 @@ def speedup(n, clusters, dim):
 
     return baseline, reordered, no_reorder.median_cycle/ reorder.median_cycle
 result = []
-baseline, reordered, speedup = speedup(n=2**15, clusters=16, dim=8)
+baseline, reordered, speedup = speedup(n=2**17, clusters=16, dim=8)
 print("speedup: ", speedup)
 print("baseline iterations:  ", baseline)
 print("reordered iterations: ", reordered)

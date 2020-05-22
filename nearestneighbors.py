@@ -69,7 +69,7 @@ def c_nearest_neighbors(directory, dataset, K, metric, repetition, stdout=False,
     if os.path.isfile(os.path.join(directory, 'bruteforce.c')):
         files.append('bruteforce.c')
 
-    flags = ['-lm','-O1','-ffast-math','-march=native']
+    flags = ['-lm','-O3','-ffast-math','-march=native']
     if gprof_compile:
         process = subprocess.run(['gcc'] + files + flags + ['-pg', '-DINSTR=true'], check=True, stdout=subprocess.PIPE, universal_newlines=True, cwd=directory)
     else:
