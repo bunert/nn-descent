@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     print(args)
 
-tags = ['dan-test', 'heap_insert_bounded', 'turbosampling', 'l2intrinsics', 'mem-align', 'blocked-distances-for-new'] if args.tag is None else [args.tag]
+tags = ['heap_insert_bounded', 'turbosampling', 'l2intrinsics', 'mem-align', 'blocked-distances-for-new', 'reorder-data'] if args.tag is None else [args.tag]
 for t in tags:
     git_clone(t)
 
