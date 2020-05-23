@@ -32,20 +32,16 @@ if __name__ == "__main__":
 
     print(args)
 
-def speedup(n, clusters, dim):
-    dataset = get_dataset(data_name='clustered', n=n, dim=dim, clusters=clusters, noshuffle=False)
-    git_clone('blocked-distances-for-new')
-    nn_list, no_reorder = c_nearest_neighbors('tmp/nn_descent', dataset, args.k, args.metric, args.repetitions)
-
-    git_clone('reorder-data')
-    nn_list, reorder = c_nearest_neighbors('tmp/nn_descent', dataset, args.k, args.metric, args.repetitions)
+# script that benchmarks the permutation of the greedy heuristic
+# clones modified nn_descent into tmp which prints permutation and exits
 
 result = []
 n=2**14
 dim=8
 clusters=8
 dataset = get_dataset(data_name='clustered', n=n, dim=dim, clusters=clusters, noshuffle=False)
-nn_list, no_reorder = c_nearest_neighbors('master/nn_descent', dataset, args.k, args.metric, args.repetitions)
+git_clone('reorder-print-perm')
+nn_list, no_reorder = c_nearest_neighbors('tmp/nn_descent', dataset, args.k, args.metric, args.repetitions)
 s= nn_list[0].stdout
 
 start = s.find("fwd_permutation\n") + len("fwd_permutation\n")
@@ -55,17 +51,21 @@ fwd_perm = np.loadtxt(StringIO(substring), dtype=int)
 
 X = dataset.X
 X_ = np.zeros(X.shape)
+
 for i in range(len(fwd_perm)):
     X_[fwd_perm[i]] = X[i]
 
 nbrs = NearestNeighbors(n_neighbors=1).fit(dataset.means)
 distances, indices = nbrs.kneighbors(X_)
 
-window = 5
+window = 1000
 n = len(fwd_perm)
-print(indices)
-print(np.max(distances))
-for cluster in list(set(indices.flatten())):
+freqs = []
+clusters =  sorted(list(set(indices.flatten())))
+
+for cluster in clusters:
     occurences = list(map(lambda i: np.sum(indices[i-window:i+window]==cluster), range(window, n-window)))
     freq = np.true_divide(occurences, 2*window)
-    print(freq[:100])
+    freqs.append(freq)
+print("header: ", clusters)
+np.savetxt('clust_freq.txt', np.array(freqs).transpose())
